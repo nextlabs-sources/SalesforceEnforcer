@@ -1,0 +1,1952 @@
+<apex:page docType="html-5.0" controller="NxlSettingsController">
+    <apex:includeScript value="{!$Resource.util}" />
+    <apex:includeScript value="{!$Resource.promise_polyfill}" />
+    <link id="classicStyle" rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/classic.css')}"></link>
+    <script type="text/javascript">
+        if (nxl && nxl.util && nxl.util.isLightning()) {
+            var header = document.querySelector('head')
+            var styler = document.querySelector('#classicStyle')
+
+            if (header && styler) {
+                header.textContent = ''
+                try {
+                    document.body.removeChild(styler)
+                } catch (e) {
+                    console.log(e)
+                }
+            } else {
+                console.log('******* remove resources failed *******')
+            }
+        }
+    </script>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/common.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/topbar.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/progressbar.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/field-selector.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/user_attributes.css')}"></link>
+    <div>
+        <div class="header">
+            <div class="topbar">
+                <div id="topbarHomeBtn" class="col btn co-title-wrap">
+                    <img class="co-title" src="{!URLFOR($Resource.nxl_frontend, '/img/nxl_title_sm.png')}"></img>
+                    <h6 class="co-title-desc font-sm font-bold">Entitlement Management</h6>
+                </div>
+                <div id="topbarSaveBtn" class="col btn topbar-btn-wrap">
+                    <i class="box save-icon"></i>
+                    <span class="topbar-btn-text font-md">Save Attributes</span>
+                </div>
+                <i class="box sep-v hide"></i>
+                <div id="topbarDiscardBtn" class="col btn topbar-btn-wrap hide">
+                    <i class="box discard-icon"></i>
+                    <span class="topbar-btn-text font-md">Discard Changes</span>
+                </div>
+                <i class="box sep-v"></i>
+                <div id="topbarExportAndSaveBtn" class="col btn topbar-btn-wrap">
+                    <i class="box export-icon"></i>
+                    <span class="topbar-btn-text font-md">Export &#x26; Save Selected Attributes</span>
+                </div>
+            </div>
+        </div>
+        <div class="content-header">
+            <img class="box content-header-avatar" src="{!URLFOR($Resource.nxl_frontend, '/img/nxl_user_attributes.png')}"></img>
+            <div class="box content-title-wrap">
+                <h2 class="content-title font-bold">User Attributes</h2>
+                <p class="content-title-desc font-md">Configure user attributes available for policy authoring and evaluation</p>
+                <hr class="sep-title-h" />
+                <p class="content-title-info font-md">Users will only be able to access selected entities and records that they are authorized for based on the
+                    policies defined in the NextLabs CloudAz or Control Center console.</p>
+            </div>
+        </div>
+        <div class="content-body se-body">
+            <div class="section section-entity-list">
+                <div class="entity-table-wrap">
+                    <p class="show-fields-wrap font-sm">
+                        <i>Total attribuites
+                            <span id="totalAttrCounter">0</span> (
+                            <span id="selectedAttrCounter">0</span> selected )</i>
+                    </p>
+                    <table id="attrTable" class="entity-table">
+                        <thead>
+                            <tr>
+                                <th class="td-sm">
+                                    <input id="select-attr-all" type="checkbox" class="checkbox hide" />
+                                    <label for="select-attr-all" class="box"></label>
+                                </th>
+                                <th class="td-lg">
+                                    <span class="font-bold font-md">Display Name</span>
+                                    <input id="ua-displayname" type="checkbox" class="hide" data-prop="displayName" />
+                                    <label for="ua-displayname" class="sort-tri"></label>
+                                </th>
+                                <th class="td-lg">
+                                    <span class="font-bold font-md">Name</span>
+                                    <input id="ua-name" type="checkbox" class="hide" data-prop="id" />
+                                    <label for="ua-name" class="sort-tri"></label>
+                                </th>
+                                <th class="td-lg">
+                                    <span class="font-bold font-md">Data Type</span>
+                                    <input id="ua-datatype" type="checkbox" class="hide" data-prop="datatype" />
+                                    <label for="ua-datatype" class="sort-tri"></label>
+                                </th>
+                                <!--<th class="td-lg">
+                                    <span class="font-bold font-md">Acitve</span>
+                                    <input id="ua-active" type="checkbox" class="hide" data-prop="active"/>
+                                    <label for="ua-active" class="sort-tri"></label>
+                                </th>-->
+                                <th class="td-lg">
+                                    <span class="font-bold font-md">Reference Attributes</span>
+                                    <input id="ua-mandatory" type="checkbox" class="hide" data-prop="" />
+                                    <label for="ua-mandatory" class="sort-tri hide"></label>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="content-footer footer-toolbar-wrap">
+            <div class="footer-toolbar">
+                <button id="bottomSaveBtn" class="btn">Save Attributes</button>
+                <button id="bottomSaveExportBtn" class="btn">Export &amp; Save Selected Attributes</button>
+                <button class="btn hide">Import User Attribuites</button>
+            </div>
+        </div>
+        <div id="fieldSelectorModal" class="overlay hide">
+            <div class="modal modal-field-selector">
+                <div class="modal-header gray-down">
+                    <h4 class="modal-title font-bold">Reference Fields Selector</h4>
+                    <button class="btn modal-close">X</button>
+                </div>
+                <div class="modal-body modal-field-selector-body">
+                    <div id="treevieweWrap" class="treeview-wrap">
+                        <!--div class="tree-node">
+                            <div class="tree-node-content">
+                                <i class="box btn attr-toggle-icon" data-expand="false">+</i>
+                                <span class="table-name font-bold">Caller</span>                    
+                            </div>
+                            <div class="child-tree-node">
+                                <div class="tree-node-content">
+                                    <div class="box checkbox-sm-wrap">
+                                        <input id="user.name" type="checkbox" class="checkbox-sm hide" />
+                                        <label for="user.name" class="box"></label>
+                                    </div>
+                                    <span class="field-name">Name</span>
+                                </div>
+                                <div class="tree-node-content">
+                                    <div class="box checkbox-sm-wrap">
+                                        <input id="user.email" type="checkbox" class="checkbox-sm hide" />
+                                        <label for="user.email" class="box"></label>
+                                    </div>
+                                    <span class="field-name">Email</span>
+                                </div>                        
+                                <div class="tree-node">
+                                    <div class="tree-node-content">
+                                        <i class="box btn attr-toggle-icon" data-expand="false">+</i>
+                                        <span class="table-name font-bold">Department</span>                    
+                                    </div>
+                                    <div class="child-tree-node">
+                                        <div class="tree-node-content">
+                                            <div class="box checkbox-sm-wrap">
+                                                <input id="dept.name" type="checkbox" class="checkbox-sm hide" />
+                                                <label for="dept.name" class="box"></label>
+                                            </div>
+                                            <span class="field-name">Name</span>
+                                        </div>
+                                        <div class="tree-node-content">
+                                            <div class="box checkbox-sm-wrap">
+                                                <input id="dept.address" type="checkbox" class="checkbox-sm hide" />
+                                                <label for="dept.address" class="box"></label>
+                                            </div>
+                                            <span class="field-name">Address</span>
+                                        </div>                                                                
+                                    </div>
+                                </div>                        
+                            </div>
+                        </div-->
+                    </div>
+                </div>
+                <div class="modal-footer modal-toolbar gray-up">
+                    <button id="fieldSelectorCancelBtn" class="btn btn-default btn-sm font-md footer-btn-margin">Cancel</button>
+                    <button id="fieldSelectorConfirmBtn" class="btn btn-default btn-sm font-md footer-btn-margin">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        ; (function () {
+
+            var USER_ATTRIBUTE_TYPE = '280240001'
+            var USER_ATTRIBUTES = 'user_attributes'
+            var USER = 'User'
+            var PROP_SEP = '.'
+            var TREEVIEW_ATTR_PREFIX = 'tree'
+            var TABLE_REF_PREFIX = 'ref'
+            var TREE_NODE_ID = 0
+            var MAX_PAYLOADS_SIZE = 30000
+            var OVER_MAXSIZE_EXCEPT_MSG = 'Because of system limitation, you can not select too many attributes to secure. Please contact system support for further help.'
+            var DEFAULT_EXCEPT_MSG = 'Access denied due to system error. Try again and contact the system administrator if the problem persists.'
+            var GS_EXCEPT_MSG = DEFAULT_EXCEPT_MSG
+
+            var util = nxl.util
+            var sdk = nxl.sdk
+            var $ = util.$
+            var $$ = util.$$
+            var _extend = util.extend
+            var createDOM = util.createDOMFromString
+
+            //#region - the data
+
+            /**
+             * tables for data
+             * - all attribute tables follow the format: { attrId: table }
+             * - table definitions can be found in typings/user-attr-store.d.ts
+             */
+            var store = {
+                entityAttrFetchStatus: {},
+                entityEnforcer: {},
+                entityInfo: {},
+                attrInfo: {},
+                attrEnforcer: {},
+                refAttrInfo: {},
+                refAttrEnforcer: {},
+            }
+
+            /**
+             * element caches used to locate element by id/compositeId
+             * - list caches entity-card-checkbox elements in entity list
+             * - summary caches summary-entity-card elements in summary entity list
+             */
+            var elementMaps = {
+                table: {}
+            }
+
+            var elements = {
+                topSaveBtn: $('#topbarSaveBtn'),
+                topSaveExportBtn: $('#topbarExportAndSaveBtn'),
+                bottomSaveBtn: $('#bottomSaveBtn'),
+                bottomSaveExportBtn: $('#bottomSaveExportBtn'),
+                tableHeader: $('#attrTable > thead'),
+                tableBody: $('#attrTable > tbody'),
+                totalAttrCounter: $('#totalAttrCounter'),
+                selectedAttrCounter: $('#selectedAttrCounter'),
+                selectAllBtn: $('#select-attr-all'),
+                fieldCancelBtn: $('#fieldSelectorCancelBtn'),
+                fieldConfirmBtn: $('#fieldSelectorConfirmBtn'),
+            }
+
+            //#endregion    
+
+            //#region - component
+            var treeviewSelector = {
+                el: $('#fieldSelectorModal'),
+                wrap: $('#treevieweWrap'),
+                show: function () {
+                    this.el.classList.remove('hide')
+                },
+                hide: function () {
+                    this.el.classList.add('hide')
+                },
+                clear: function () {
+                    this.wrap.textContent = ''
+                }
+            }
+            //#endregion
+
+            //#region - services
+
+            var service = {
+
+                getTriggerInfos: function () {
+                    return (
+                        Object.keys(store.triggerInfo).map(function (key) {
+                            return util.extend({}, store.triggerInfo[key])
+                        })
+                    )
+                },
+
+                /**
+                 * get entity from store tables
+                 * @param {string} id
+                 * @return {SE.ViewModel.Entity}
+                 */
+                getEntityById: function (id) {
+                    if (id == null) {
+                        return null
+                    }
+
+                    return _extend({}, store.entityInfo[id], store.entityEnforcer[id])
+                },
+
+                /**
+                 * 
+                 * @param {string} entityId 
+                 * @return {SE.Tables.Enforcer}
+                 */
+                getEntityEnforcementById: function (entityId) {
+                    if (entityId == null) {
+                        return null
+                    }
+
+                    return _extend({}, store.entityEnforcer[entityId])
+                },
+
+                /**
+                 * get attribute from store tables
+                 * @param {string} compositeId
+                 * @return {SE.ViewModel.Attribute}
+                 */
+                getAttributeByCompositeId: function (compositeId) {
+                    if (compositeId == null || compositeId.split(':').length < 2) {
+                        return null
+                    }
+
+                    return _extend(
+                        {},
+                        store.attrInfo[compositeId],
+                        store.attrEnforcer[compositeId]
+                    )
+                },
+
+                getWillEnforcedAttributesByEntityId: function (entityId) {
+
+                    var primitiveAttrs = service.getAttributesByEntityId(entityId).filter(function (attr) { return attr.willEnforced })
+                    var refAttrs = service.getEnforcedRefAttributesByEntityId(entityId)
+                    return primitiveAttrs.concat(refAttrs)
+                },
+
+                /**
+                 * get attributes of an entity from store tables
+                 * @param {string} id
+                 * @return {SE.ViewModel.Attribute[]}
+                 */
+                getAttributesByEntityId: function (id) {
+                    if (id == null) {
+                        return []
+                    }
+
+                    var compositeIds = Object.keys(store.attrInfo)
+
+                    return compositeIds
+                        .filter(function (compositeId) {
+                            var entityId = compositeId.split(':')[0]
+                            return entityId === id
+                        })
+                        .map(function (compositeId) {
+                            return _extend(
+                                {},
+                                store.attrInfo[compositeId],
+                                store.attrEnforcer[compositeId]
+                            )
+                        })
+                },
+
+                /**
+                 * get entities from table
+                 * @return {NXL_Entity[]}
+                 */
+                getAllEntities: function () {
+                    return Object.keys(store.entityInfo).map(function (entityId) {
+                        return service.getEntityById(entityId)
+                    })
+                },
+
+                /**
+                 * @return {SE.ViewModel.Entity[]}
+                 */
+                getWillEnforcedEntities: function () {
+                    return Object.keys(store.entityEnforcer)
+                        .filter(function (entityId) {
+                            return store.entityEnforcer[entityId].willEnforced
+                        })
+                        .map(function (entityId) {
+                            return _extend(
+                                {},
+                                store.entityEnforcer[entityId],
+                                store.entityInfo[entityId]
+                            )
+                        })
+                },
+
+                /**
+                 * @return {SE.ViewModel.Entity[]}
+                 */
+
+                getWillUnEnforcedEntities: function () {
+                    return Object.keys(store.entityEnforcer)
+                        .filter(function (entityId) {
+                            return (
+                                !store.entityEnforcer[entityId].willEnforced &&
+                                store.entityEnforcer[entityId].enforced
+                            )
+                        })
+                        .map(function (entityId) {
+                            return _extend(
+                                {},
+                                store.entityEnforcer[entityId],
+                                store.entityInfo[entityId]
+                            )
+                        })
+                },
+
+                /**
+                 * @return {SE.ViewModel.Entity[]}
+                 */
+                getEnforcedEntities: function () {
+                    return Object.keys(store.entityEnforcer)
+                        .filter(function (entityId) {
+                            return store.entityEnforcer[entityId].enforced
+                        })
+                        .map(function (entityId) {
+                            return _extend(
+                                {},
+                                store.entityEnforcer[entityId],
+                                store.entityInfo[entityId]
+                            )
+                        })
+                },
+
+                /**
+                 * @param {string} entityId
+                 * @return {SE.Tables.FetchStatus}
+                 */
+                getEntityAttrFetchStatus: function (entityId) {
+                    return _extend({}, store.entityAttrFetchStatus[entityId])
+                },
+
+                /**
+                 * @param {string} compositeId
+                 * @return {SE.ViewModel.Attribute}
+                 */
+                getEnforcedRefAttributeByCompositeId: function (compositeId) {
+                    if (compositeId == null) {
+                        return null
+                    }
+
+                    var enforcer = store.refAttrEnforcer[compositeId]
+                    var isEnforced = (enforcer && enforcer.enforced)
+                    var willEnforced = (enforcer && enforcer.willEnforced)
+
+                    if (willEnforced) {
+                        return _extend({}, store.refAttrInfo[compositeId], { enforced: isEnforced, willEnforced: willEnforced })
+                    } else {
+                        return null
+                    }
+                },
+
+                /**
+                 * @param {string} entityId
+                 * @return {SE.ViewModel.Attribute[]}
+                 */
+                getAllRefAttributesByCompositeId: function (id) {
+
+                    if (id == null) {
+                        return []
+                    }
+
+                    var compositeIds = Object.keys(store.refAttrInfo)
+                    return compositeIds.filter(function (compositeId) {
+                        var entityAttrId = compositeId.split(PROP_SEP)[0]
+                        return entityAttrId === id
+                    }).map(function (compositeId) {
+
+                        var enforced = (store.refAttrEnforcer[compositeId] && !!store.refAttrEnforcer[compositeId].enforced)
+                        var willEnforced = (store.refAttrEnforcer[compositeId] && !!store.refAttrEnforcer[compositeId].willEnforced)
+
+                        return _extend({}, store.refAttrInfo[compositeId], { enforced: enforced, willEnforced: willEnforced })
+                    })
+                },
+
+                /**
+                 * @param {string} entityId
+                 * @return {SE.ViewModel.Attribute[]}
+                 */
+                getEnforcedRefAttributesByCompositeId: function (id) {
+
+                    if (id == null) {
+                        return []
+                    }
+
+                    var compositeIds = Object.keys(store.refAttrInfo)
+                    return compositeIds.filter(function (compositeId) {
+                        var entityAttrId = compositeId.split(PROP_SEP)[0]
+                        return entityAttrId === id && !!store.refAttrEnforcer[compositeId].willEnforced
+                    }).map(function (compositeId) {
+                        return _extend({}, store.refAttrInfo[compositeId], { enforced: !!store.refAttrEnforcer[compositeId].enforced, willEnforced: !!store.refAttrEnforcer[compositeId].willEnforced })
+                    })
+                },
+
+                /**
+                 * @param {string} entityId
+                 * @return {SE.ViewModel.Attribute[]}
+                 */
+                getEnforcedRefAttributesByEntityId: function (entityId) {
+
+                    if (entityId == null) {
+                        return []
+                    }
+
+                    var compositeIds = Object.keys(store.refAttrInfo)
+                    return compositeIds.filter(function (compositeId) {
+                        var id = compositeId.split(':')[0]
+                        return entityId === id && !!store.refAttrEnforcer[compositeId].willEnforced
+                    }).map(function (compositeId) {
+                        return _extend({}, store.refAttrInfo[compositeId], { enforced: !!store.refAttrEnforcer[compositeId].enforced, willEnforced: !!store.refAttrEnforcer[compositeId].willEnforced })
+                    })
+                },
+
+                /**
+                 * @param {string} refAttrId
+                 * @return {SE.ViewModel.Attribute[]}
+                 */
+                getEnforcedRefAttributesByRefAttributeId: function (refAttrId) {
+
+                    if (refAttrId == null) {
+                        return null
+                    }
+
+                    var compositeIds = Object.keys(store.refAttrInfo)
+                    return compositeIds.filter(function (compositeId) {
+
+                        var curAttrId = compositeId.split(':')[1]
+                        var curRefAttrId = curAttrId ? curAttrId.split(PROP_SEP)[0] : ''
+                        return refAttrId === curRefAttrId
+                    }).map(function (compositeId) {
+                        return _extend({}, store.refAttrInfo[compositeId], { enforced: true, willEnforced: true })
+                    })
+                },
+
+                /**
+                 * set entity enforcement by id
+                 * @param {string} entityId
+                 * @param {boolean} enforce
+                 */
+                setEntityEnforcement: function (entityId, enforce) {
+                    var entityEnforcer = store.entityEnforcer[entityId]
+
+                    if (entityEnforcer) {
+                        entityEnforcer.willEnforced = !!enforce
+                    } else {
+                        entityEnforcerHydrator(entityId, !!enforce)
+                    }
+                },
+
+                /**
+                 * set attribute enforcement by compositeId
+                 * @param {string} compositeId
+                 * @param {boolean} enforce
+                 */
+                setAttributeEnforcement: function (compositeId, enforce) {
+                    var attrEnforcer = store.attrEnforcer[compositeId]
+
+                    if (attrEnforcer) {
+                        attrEnforcer.willEnforced = !!enforce
+                    }
+                    else {
+                        attrEnforcerHydrator(compositeId, !!enforce)
+                    }
+                },
+
+                /**
+                 * @param {string} compositeId
+                 * @param {boolean} enforce
+                 */
+                setRefAttributeEnforcement: function (compositeId, enforce) {
+
+                    var refAttrEnforcer = store.refAttrEnforcer[compositeId]
+                    if (refAttrEnforcer) {
+                        refAttrEnforcer.willEnforced = enforce
+                    }
+                    else {
+                        refAttrEnforcerHydrator(compositeId, enforce)
+                    }
+                },
+
+                /**
+                 * @param {string} id
+                 * @param {boolean} enforce
+                 */
+                setBatchRefAttributeEnforcementById: function (id, enforce) {
+
+                    if (id == null) {
+                        console.log(util.format('setBatchRefAttributeEnforcementById failed, compositeId: {0}', id))
+                        return
+                    }
+
+                    var compositeIds = Object.keys(store.refAttrEnforcer)
+                    compositeIds.filter(function (compositeId) {
+                        var entityAttrId = compositeId.split(PROP_SEP)[0]
+                        return entityAttrId === id
+                    }).forEach(function (compositeId) {
+
+                        var enfocer = store.refAttrEnforcer[compositeId]
+                        if (enforce) {
+                            enforce.willEnforced = enforce
+                        }
+                        else {
+                            refAttrEnforcerHydrator(compositeId, enforce)
+                        }
+                    })
+                },
+
+                setEntityAttrFetchStatus: function (entityId, isFetched) {
+
+                    var fetchStatus = store.entityAttrFetchStatus[entityId]
+
+                    if (fetchStatus) {
+                        fetchStatus.isFetched = isFetched
+                    }
+                    else {
+                        entityAttrFetchStatusHydrator(entityId, isFetched)
+                    }
+                }
+            }
+                //endregion
+
+                //#region - entry point
+                ; (function init() {
+
+                    initListeners()
+
+                    getGSData()
+                        .then(function (res) {
+                            if (res && res.policymsg) {
+                                GS_EXCEPT_MSG = res.policymsg
+                            }
+                            return fetchAttribute(USER)
+                        })
+                        .then(fetchEnforcedAttributes)
+                        .then(function () {
+                            setTotalAttrCount()
+                            setSelectedAttrCount()
+                            renderAttrTable(service.getAttributesByEntityId(USER))
+                        }).catch(UIErrorHandler)
+
+                })()
+
+            function initListeners() {
+                elements.topSaveBtn.onclick = saveHandler.bind(this)
+                elements.bottomSaveBtn.onclick = saveHandler.bind(this)
+                elements.tableHeader.onclick = sortHandler
+                elements.selectAllBtn.onclick = selectAllAttrHandler.bind(this)
+                elements.topSaveExportBtn.onclick = exportAndSaveHandler.bind(this)
+                elements.bottomSaveExportBtn.onclick = exportAndSaveHandler.bind(this)
+                elements.fieldConfirmBtn.onclick = fieldSelectorConfirmHandler.bind(this)
+                elements.fieldCancelBtn.onclick = treeviewSelector.hide.bind(treeviewSelector)
+            }
+
+            //#endregion
+
+            //#region - promisify javascript remoting 
+            function fetchEnforcedAttributes() {
+                var action = '{!$RemoteAction.NxlSettingsController.GetEnforcedUserAttributes}'
+                var config = { escape: false }
+
+                return new Promise(function (resolve, reject) {
+                    Visualforce.remoting.Manager.invokeAction(action, function (result, event) {
+
+                        if (event.status) {
+
+                            var payload = JSON.parse(result)
+                            var models = payload.response
+                            var status = payload.status
+
+                            if (status === 200 && Array.isArray(models)) {
+                                models.forEach(function (model) {
+
+                                    if (model.isRef) {
+                                        refAttributeHydrator(model, USER)
+                                        refAttrEnforcerHydrator(util.format('{0}:{1}', USER, model.id), true)
+                                    } else {
+                                        metaAttributeHydrator(model, USER)
+                                        attrEnforcerHydrator(util.format('{0}:{1}', USER, model.id), true)
+                                    }
+                                })
+                                resolve()
+                            } else {
+                                console.log(util.format('fetchEnforcedAttributes failed, status: {0}, response: {1}', status, models))
+                                reject(new Error(GS_EXCEPT_MSG))
+                            }
+                        } else {
+                            console.log(util.format('fetchEnforcedAttributes failed, msg: {0}', event.message))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    }, config)
+                })
+            }
+
+            /**
+             * 
+             * @param {SE.ViewModel.Attribute[]} attrs 
+             */
+            function postAttributes(attrs) {
+
+                var action = '{!$RemoteAction.NxlSettingsController.SaveUserAttributes}'
+                var config = { escape: false }
+                var models = attrs.map(function (attr) { return attributeDehydrator(attr) })
+                var payloads = JSON.stringify(models)
+
+                return new Promise(function (resolve, reject) {
+
+                    if (payloads.length > MAX_PAYLOADS_SIZE) {
+                        return reject(new Error(OVER_MAXSIZE_EXCEPT_MSG))
+                    }
+
+                    Visualforce.remoting.Manager.invokeAction(action, USER_ATTRIBUTES, true, USER_ATTRIBUTE_TYPE, payloads, function (result, event) {
+
+                        if (event.status) {
+
+                            var payload = JSON.parse(result)
+                            var status = payload.status
+
+                            if (status === 200) {
+                                return resolve(payload.response)
+                            } else {
+                                console.log(util.format('postAttributes failed, status: {0}, response: {1}', status, models))
+                                reject(new Error(GS_EXCEPT_MSG))
+                            }
+                        } else {
+                            console.log(util.format('postAttributes failed, msg: {0}', event.message))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    }, config)
+
+                })
+
+            }
+
+            /**
+             * @deprecated
+             * @param {string} entityId
+             * @return {Promise}
+             */
+            function fetchAttribute(entityId) {
+
+                var action = '{!$RemoteAction.NxlSettingsController.GetEntityMetaAttributes}'
+                var config = { escape: false }
+
+                return new Promise(function (resolve, reject) {
+
+                    Visualforce.remoting.Manager.invokeAction(action, entityId, function (result, event) {
+
+                        if (event.status) {
+
+                            var payload = JSON.parse(result)
+                            var models = payload.response
+                            var status = payload.status
+
+                            if (status === 200 && Array.isArray(models)) {
+                                models.forEach(function (model) {
+                                    metaAttributeHydrator(model, entityId)
+                                })
+                                service.setEntityAttrFetchStatus(entityId, true)
+                                resolve(entityId)
+                            } else {
+                                console.log(util.format('fetchAttribute failed, status: {0}, response: {1}', status, models))
+                                reject(new Error(GS_EXCEPT_MSG))
+                            }
+                        } else {
+                            console.log(util.format('fetchAttribute failed, msg: {0}', event.message))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    }, config)
+
+                })
+            }
+
+            function fetchEntityMetadata(entityId) {
+
+                var action = '{!$RemoteAction.NxlSettingsController.GetEntityMetadata}'
+                var config = { escape: false }
+
+                return new Promise(function (resolve, reject) {
+                    Visualforce.remoting.Manager.invokeAction(action, entityId, function (result, event) {
+
+                        if (event.status) {
+
+                            var payload = JSON.parse(result)
+
+                            /**
+                             * @type {SE.APIModel.NxlMetaEntity[]}
+                             */
+                            var entity = payload.response
+                            var status = payload.status
+
+                            if (status === 200 && entity) {
+
+                                var id = entity.id
+
+                                metaEntityHydrator(entity)
+                                entityEnforcerHydrator(id, false)
+
+                                resolve(id)
+                            }
+                            else {
+                                console.log(util.format('fetchEntityMetadata failed, records: {0}', models))
+                                reject(new Error(GS_EXCEPT_MSG))
+                            }
+
+                        } else {
+                            console.log(util.format('fetchEntityMetadata failed, msg: {0}', event.message))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+            /**
+             * get general setting data
+             * @return {object} - the general setting data structure defined in restful api 
+             */
+            function getGSData() {
+                var resource = '{!$RemoteAction.NxlSettingsController.GetGeneralSettings}'
+                return fetchData(resource)
+            }
+
+            function fetchData(resource) {
+                return new Promise(function (resolve, reject) {
+
+                    var config = { escape: false }
+
+                    Visualforce.remoting.Manager.invokeAction(resource, function (result, event) {
+                        if (event.status) {
+                            try {
+                                var res = JSON.parse(result)
+                                if (res.error || res.status !== 200) {
+                                    console.log(util.format('fetchData failed, msg: {0}', res.error))
+                                    reject(new Error(GS_EXCEPT_MSG))
+                                } else {
+                                    resolve(JSON.parse(res.response))
+                                }
+                            } catch (e) {
+                                console.log(e)
+                                reject(new Error(GS_EXCEPT_MSG))
+                            }
+                        } else {
+                            console.log(event.message)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+            function UIErrorHandler(e) {
+                console.log(e)
+                alert(e.message)
+            }
+            //#endregion
+
+            //#region - event handlers 
+
+            function saveHandler(e) {
+
+                var attrs = service.getWillEnforcedAttributesByEntityId(USER)
+
+                postAttributes(attrs)
+                    .then(function () {
+                        util.reloadPage()
+                    })
+                    .catch(UIErrorHandler)
+            }
+
+            function exportAndSaveHandler(e) {
+
+                var attrs = service.getWillEnforcedAttributesByEntityId(USER)
+
+                var entity = {
+                    id: 'User',
+                    name: 'User',
+                    displayName: 'User',
+                    description: 'An actor or subject whose attributes may be referenced in component',
+                }
+
+                var pmAttrs = attrs
+                var pmEntity = _extend({}, entity, { attributes: pmAttrs })
+
+                var policy = util.getPolicyModel([pmEntity])
+                policy.components = []
+                policy.policyModels[0].obligations = []
+                policy.policyModels[0].actions = []
+
+                util.download(JSON.stringify(policy), util.format('{0}_{1}.bin', 'NextLabs_SalesForce_PolicyModel', Date.now()))
+
+                var saveEvt = util.createEvent('click')
+                elements.topSaveBtn.dispatchEvent(saveEvt)
+            }
+
+            function attrCheckHandler(e) {
+                if (e.target && e.target.type === 'checkbox') {
+
+                    var inputEl = e.target
+                    var tdEl = inputEl.parentElement
+                    var unfoldEl = $('.unfolder-wrap', tdEl)
+                    var compositeId = inputEl.id
+                    var entityId = compositeId.split(':')[0]
+                    var attr = service.getAttributeByCompositeId(compositeId)
+                    var attrCheckbox = elementMaps.table[compositeId]
+
+                    if (attr) {
+
+                        if (attr.datatype && attr.datatype.toLowerCase() === 'reference') {
+
+                            if (inputEl.checked) {
+                                inputEl.checked = false
+                                treeviewSelector.wrap.setAttribute('data-id', util.format('{0}:{1}', TABLE_REF_PREFIX, entityId))
+                                treeviewSelector.wrap.setAttribute('data-ref-attr', util.format('{0}:{1}', TABLE_REF_PREFIX, compositeId))
+                                referenceAttrCheckHandler(attr)
+                            } else {
+                                //unenforce all enforced referenc attribuets
+                                service.setBatchRefAttributeEnforcementById(compositeId, false)
+                                updateRefAttrTableCell(compositeId)
+
+                                unfoldEl.classList.add('hide')
+                            }
+                        } else {
+                            service.setAttributeEnforcement(compositeId, inputEl.checked)
+                        }
+
+                        setSelectedAttrCount()
+                    }
+                    else {
+                        console.log(util.format('attrCheckHandler failed, entity: {0}, compositeId: {1}', entityId, compositeId))
+                    }
+                }
+            }
+
+            function selectAllAttrHandler(e) {
+
+                var selectAllCheckbox = e.target
+                var checkboxEls = $$('input[type=checkbox]', elements.tableBody)
+
+                if (selectAllCheckbox.type === 'checkbox') {
+
+                    if (checkboxEls.length) {
+
+                        Array.prototype.slice.call(checkboxEls).forEach(function (el) {
+
+                            var compositeId = el.id
+                            var attr = service.getAttributeByCompositeId(compositeId)
+
+                            if (selectAllCheckbox.checked && (attr.datatype && attr.datatype.toLowerCase() === 'reference')) {
+                                return
+                            } else {
+                                el.checked = selectAllCheckbox.checked
+                                service.setAttributeEnforcement(compositeId, el.checked)
+
+                                if (attr.datatype && attr.datatype.toLowerCase() === 'reference') {
+                                    service.setBatchRefAttributeEnforcementById(compositeId, false)
+                                    updateRefAttrTableCell(compositeId)
+                                }
+                            }
+                        })
+                    }
+                    else {
+                        console.log('selectAllAttrHandler failed, checkbox elements null or empty')
+                    }
+                }
+
+                setSelectedAttrCount()
+            }
+
+            function sortHandler(e) {
+
+                var el = e.target
+                var prop = el.getAttribute('data-prop')
+
+                if (prop) {
+                    if (elements.tableBody) {
+                        elements.tableBody.textContent = ''
+                        var sortedAttrs = service.getAttributesByEntityId(USER).sort(function (a, b) {
+                            return el.checked ? alphaDescendSorter(a[prop], b[prop]) : alphaAscendSorter(a[prop], b[prop])
+                        })
+                        renderAttrTable(sortedAttrs)
+                    }
+                    else {
+                        console.log('sortHandler failed, element table body not found.')
+                    }
+                }
+            }
+
+            function fieldSelectorConfirmHandler(e) {
+
+                var selectedAttrNames = getCheckedAttributeNames(treeviewSelector.wrap)
+                var entityId = treeviewSelector.wrap.getAttribute('data-id').split(':')[1]
+                var entityAttrId = treeviewSelector.wrap.getAttribute('data-ref-attr').slice(TABLE_REF_PREFIX.length + 1)
+                var attrCheckboxEl = elementMaps.table[entityAttrId]
+                if (attrCheckboxEl) {
+
+                    var tdEl = attrCheckboxEl.parentElement
+                    var unfoldEl = $('.unfolder-wrap', tdEl)
+
+                    selectedAttrNames.length && (attrCheckboxEl.checked = true)
+
+                    if (selectedAttrNames.length) {
+                        unfoldEl.classList.remove('hide')
+                    } else {
+                        unfoldEl.classList.add('hide')
+                    }
+                }
+                else {
+                    console.log(util.format('fieldSelectorConfirmHandler -> get attribute checkbox failed, compositeId: {0}', entityAttrId))
+                }
+
+                //unenforce previous reference attributes
+                var prevClassifiedEnforcedRefAttrs = selectedAttrNames.reduce(function (prev, attr) {
+                    prev[util.format('{0}:{1}', entityId, attr.name).split(PROP_SEP)[0]] = 1
+                    return prev
+                }, {})
+                var prevEnforcedRefAttrCompositeIds = Object.keys(prevClassifiedEnforcedRefAttrs)
+                prevEnforcedRefAttrCompositeIds.forEach(function (compositeId) {
+                    service.setBatchRefAttributeEnforcementById(compositeId, false)
+                })
+                //store new enforced referenced attributes
+                selectedAttrNames.forEach(function (attr) {
+                    refAttributeHydrator(attr, entityId)
+                    refAttrEnforcerHydrator(util.format('{0}:{1}', entityId, attr.name), true)
+                })
+                var refAttrs = selectedAttrNames.map(function (attr) {
+                    return service.getEnforcedRefAttributeByCompositeId(util.format('{0}:{1}', entityId, attr.name))
+                }).filter(function (attr) { return !!attr })
+                var refAttrTableCellMap = refAttrs.reduce(function (prev, attr) {
+
+                    //used to get data cells instead of storing.
+                    //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                    var compositeId = util.format('{0}:{1}', attr.table, attr.name.split(PROP_SEP)[0])
+                    var refAttrTableCell = getRefAttributeTableCell(compositeId)
+                    if (refAttrTableCell) {
+                        refAttrTableCell.textContent = ''
+                        prev[compositeId] = prev[compositeId] || refAttrTableCell
+                    }
+                    else {
+                        console.log(util.format('fieldSelectorConfirmHandler -> get ref attributes tabel cells failed, compositeId: {0}', compositeId))
+                    }
+
+                    return prev
+                }, {})
+                refAttrs.forEach(function (attr) {
+
+                    //used to get data cells instead of storing.
+                    //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                    var compositeId = util.format('{0}:{1}', attr.table, attr.name.split(PROP_SEP)[0])
+                    var refAttrTableCell = refAttrTableCellMap[compositeId]
+                    if (refAttrTableCell) {
+                        refAttrTableCell.appendChild(renderRefAttributes(attr))
+                    }
+                    else {
+                        console.log(util.format('fieldSelectorConfirmHandler -> empty tabel cells, compositeId: {0}', compositeId))
+                    }
+                })
+                treeviewSelector.hide()
+                treeviewSelector.clear()
+                setSelectedAttrCount()
+                console.log(selectedAttrNames)
+            }
+
+            function fieldSelectorModifyConfirmHandler(e) {
+
+                var selectedAttrNames = getChangedAttributeNames(treeviewSelector.wrap)
+                var entityId = treeviewSelector.wrap.getAttribute('data-id').split(':')[1]
+                var entityAttrId = treeviewSelector.wrap.getAttribute('data-ref-attr').slice(TABLE_REF_PREFIX.length + 1)
+                var entityCheckboxEl = elementMaps.table[entityId]
+                var attrCheckboxEl = $(util.format('input[id="{0}"]', entityAttrId))
+                var prevSelectedRefAttrs = service.getEnforcedRefAttributesByCompositeId(entityAttrId).reduce(function (prev, val) {
+                    prev[val.name] = {
+                        id: val.id,
+                        name: val.name,
+                        displayName: val.displayName,
+                        active: true,
+                        isRef: true,
+                        datatype: val.datatype
+                    }
+                    return prev
+                }, {})
+                var curSelectedRefAttrs = selectedAttrNames.reduce(function (prev, val) { prev[val.name] = val; return prev }, {})
+                var totalSelectedRefAttrs = _extend({}, prevSelectedRefAttrs, curSelectedRefAttrs)
+                if (attrCheckboxEl) {
+
+                    var tdEl = attrCheckboxEl.parentElement
+                    var unfoldEl = $('.unfolder-wrap', tdEl)
+
+                    attrCheckboxEl.checked = true
+                    if (Object.keys(totalSelectedRefAttrs).filter(function (k) { return totalSelectedRefAttrs[k].active }).length) {
+                        unfoldEl.classList.remove('hide')
+                        attrCheckboxEl.checked = true
+                    } else {
+                        unfoldEl.classList.add('hide')
+                        attrCheckboxEl.checked = false
+                    }
+                }
+                else {
+                    console.log(util.format('fieldSelectorConfirmHandler -> get attribute checkbox failed, compositeId: {0}', entityAttrId))
+                }
+
+                //update referenced attributes
+                selectedAttrNames.forEach(function (attr) {
+                    refAttributeHydrator(attr, entityId)
+                    refAttrEnforcerHydrator(util.format('{0}:{1}', entityId, attr.name), !!attr.active)
+                })
+                var enforcedRefAttrs = Object.keys(totalSelectedRefAttrs).map(function (refAttrId) {
+                    return service.getEnforcedRefAttributeByCompositeId(util.format('{0}:{1}', entityId, refAttrId))
+                }).filter(function (attr) { return !!attr })
+                var refAttrs = service.getAllRefAttributesByCompositeId(entityAttrId)
+                var refAttrTableCellMap = refAttrs.reduce(function (prev, attr) {
+
+                    //used to get data cells instead of storing.
+                    //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                    var compositeId = util.format('{0}:{1}', attr.table, attr.name.split(PROP_SEP)[0])
+                    var refAttrTableCell = getRefAttributeTableCell(compositeId)
+                    if (refAttrTableCell) {
+                        refAttrTableCell.textContent = ''
+                        prev[compositeId] = prev[compositeId] || refAttrTableCell
+                    }
+                    else {
+                        console.log(util.format('fieldSelectorConfirmHandler -> get ref attributes tabel cells failed, compositeId: {0}', compositeId))
+                    }
+
+                    return prev
+                }, {})
+                enforcedRefAttrs.forEach(function (attr) {
+
+                    //used to get data cells instead of storing.
+                    //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                    var compositeId = util.format('{0}:{1}', attr.table, attr.name.split(PROP_SEP)[0])
+                    var refAttrTableCell = refAttrTableCellMap[compositeId]
+                    if (refAttrTableCell) {
+                        refAttrTableCell.appendChild(renderRefAttributes(attr))
+                    }
+                    else {
+                        console.log(util.format('fieldSelectorConfirmHandler -> empty tabel cells, compositeId: {0}', compositeId))
+                    }
+                })
+                if (entityCheckboxEl) {
+                    var evt = util.createEvent('click')
+                    entityCheckboxEl.checked = false
+                    entityCheckboxEl.dispatchEvent(evt)
+                }
+                else {
+                    console.log(util.format('fieldSelectorModifyConfirmHandler -> trigger entity checked failed, checkbox of {0} not found', entityId))
+                }
+
+                treeviewSelector.hide()
+                treeviewSelector.clear()
+                setSelectedAttrCount()
+                console.log(selectedAttrNames)
+            }
+
+            function unfoldHandler(e) {
+                var target = e.target
+                var compositeId = target.getAttribute('data-id') || ''
+                var entityId = compositeId.split(':')[0]
+
+                treeviewSelector.wrap.setAttribute('data-id', util.format('{0}:{1}', TABLE_REF_PREFIX, entityId))
+                treeviewSelector.wrap.setAttribute('data-ref-attr', util.format('{0}:{1}', TABLE_REF_PREFIX, compositeId))
+                if (compositeId) {
+
+                    var attr = service.getAttributeByCompositeId(compositeId)
+
+                    if (attr && attr.name) {
+                        elements.fieldConfirmBtn.onclick = fieldSelectorModifyConfirmHandler
+                        referenceAttrCheckHandler(attr)
+                    } else {
+                        console.log('unfoldHandler failed, invalid attribute')
+                    }
+
+                } else {
+                    console.log('unfoldHandler failed, no compositeId found')
+                }
+            }
+
+            function toggleTreeNodeHandler(e) {
+
+                var btn = e.target
+                var wrap = btn && btn.parentElement
+                var childTreeNodeWrap = wrap && wrap.nextElementSibling
+                var fieldNodesWrap = wrap && wrap.nextElementSibling
+                if (btn && wrap && fieldNodesWrap && childTreeNodeWrap) {
+
+                    var refAttrName = wrap.getAttribute('data-ref-attr')
+                    var refPath = wrap.getAttribute('data-path')
+                    var isExpand = btn.getAttribute('data-expand') === 'true' ? true : false
+                    var curEntityId = btn.getAttribute('data-table')
+                    btn.setAttribute('data-expand', (!isExpand).toString())
+                    if (isExpand) {
+                        fieldNodesWrap.classList.add('hide')
+                        btn.textContent = '+'
+                    }
+                    else {
+                        fieldNodesWrap.classList.remove('hide')
+                        btn.textContent = '-'
+                        var attrFetchStatus = service.getEntityAttrFetchStatus(curEntityId)
+                        if (!attrFetchStatus.isFetched) {
+                            fetchAttribute(curEntityId)
+                                .then(function () {
+                                    innerRenderAttributeNodes(curEntityId, refAttrName, childTreeNodeWrap, refPath)
+                                })
+                                .catch(UIErrorHandler)
+                        }
+                        else {
+                            innerRenderAttributeNodes(curEntityId, refAttrName, childTreeNodeWrap, refPath)
+                        }
+                    }
+                }
+                else {
+                    console.log(util.format('entity {0} fields selector toggle handler failed', entity.id))
+                }
+            }
+
+            /**
+             * 
+             * @param {SE.ViewModel.Attribute} attr 
+             */
+            function referenceAttrCheckHandler(attr) {
+
+                if (!attr) {
+                    console.log('referenceAttrCheckHandler failed, invalid attribute')
+                    return
+                }
+
+                treeviewSelector.clear()
+                if (treeviewSelector.wrap) {
+
+                    var entityId = attr.refTable
+                    var entity = service.getEntityById(entityId)
+                    if (entity.name) {
+                        treeviewSelector.wrap.appendChild(renderTableNode(entity.id, attr.name, attr.displayName))
+                    }
+                    else {
+                        fetchEntityMetadata(entityId)
+                            .then(function (fetchedEntityId) {
+
+                                entity = service.getEntityById(fetchedEntityId)
+                                treeviewSelector.wrap.appendChild(renderTableNode(entity.id, attr.name, attr.displayName))
+                            })
+                            .catch(UIErrorHandler)
+                    }
+
+                    treeviewSelector.show()
+                }
+                else {
+                    console.log(util.format('referenceAttrCheckHandler failed, treeview wrap element not found'))
+                }
+            }
+            //#endregion
+
+            //#region - inner tools
+
+            /**
+             * @param {SE.ViewModel.Attribute} attr 
+             * @return {boolean}
+             */
+            function isRefAttribute(attr) {
+                return attr.datatype.toLowerCase() === 'reference'
+            }
+
+            /**
+             * 
+             * @param {string} compositeId 
+             * @return {HTMLElement}
+             */
+            function getRefAttributeTableCell(compositeId) {
+
+                var inputEl = $(util.format('input[id="{0}"]', compositeId))
+                var tableRowEl = inputEl ? inputEl.parentElement.parentElement : null
+                return tableRowEl ? tableRowEl.lastElementChild : null
+            }
+
+            /**
+             * @param {HTMLElement} root
+             * @return {SE.APIModel.NxlEnforcedAttribute[]} 
+             */
+            function getCheckedAttributeNames(root) {
+
+                var attrNames = []
+                var pathName = ''
+                var pathDisplayName = ''
+                var dfs = function (namePath, displayNamePath, node) {
+
+                    if (node) {
+                        if (isLeafNode(node)) {
+                            if (isLeafChecked(node)) {
+                                var leafNames = getAttributeNamesFromLeaf(node)
+                                var rawCompositeId = node.title || ''
+                                var compositeId = rawCompositeId.replace(PROP_SEP, ':')
+                                var attr = service.getAttributeByCompositeId(compositeId)
+                                //remove first empty dot
+                                if (namePath.indexOf(PROP_SEP) === 0) {
+                                    namePath = namePath.slice(1)
+                                }
+
+                                if (displayNamePath.indexOf(PROP_SEP) === 0) {
+                                    displayNamePath = displayNamePath.slice(1)
+                                }
+
+                                attrNames.push({
+                                    id: util.format('{0}{1}{2}', namePath, PROP_SEP, leafNames.name),
+                                    name: util.format('{0}{1}{2}', namePath, PROP_SEP, leafNames.name),
+                                    displayName: util.format('{0}{1}"{2}"', displayNamePath, PROP_SEP, leafNames.displayName),
+                                    isRef: true,
+                                    datatype: attr.datatype
+                                })
+                            }
+                        }
+                        else {
+
+                            var refAttrNames = getAttributeNamesFromBranch(node)
+                            namePath = util.format('{0}{1}{2}', namePath, PROP_SEP, refAttrNames.name)
+                            //namePath = namePath.length === refAttrNames.name.length + 1 ? namePath.slice(1) : namePath
+                            displayNamePath = util.format('{0}{1}"{2}"', displayNamePath, PROP_SEP, refAttrNames.displayName)
+                            //displayNamePath = displayNamePath.length === refAttrNames.displayName.length + 1 ? displayNamePath.slice(1) : displayNamePath
+                            var contentNode = node.firstElementChild
+                            var childNodesWrap = contentNode.nextElementSibling
+                            var curNode = childNodesWrap.firstElementChild
+                            while (curNode) {
+                                dfs(namePath, displayNamePath, curNode)
+                                curNode = curNode.nextElementSibling
+                            }
+                        }
+                    }
+                }
+
+                var curChildNode = root.firstElementChild
+                while (curChildNode) {
+
+                    dfs(pathName, pathDisplayName, curChildNode)
+                    curChildNode = curChildNode.nextElementSibling
+                }
+
+                return attrNames
+            }
+
+            /**
+             * @param {HTMLElement} element 
+             * @return {{ name: string, displayName: string }}
+             */
+            function getAttributeNamesFromBranch(element) {
+
+                var attrName = ''
+                var attrDisplayName = ''
+                var contentSelector = 'div[class=tree-node-content]:first-child'
+                var contentNode = $(contentSelector, element)
+                if (contentNode) {
+                    attrName = contentNode.getAttribute('data-ref-attr')
+                    attrDisplayName = contentNode.getAttribute('data-ref-attr-displayname')
+                }
+                else {
+                    console.log('getAttributeNameFromBranch failed, no table content node found.')
+                }
+
+                return {
+                    name: attrName,
+                    displayName: attrDisplayName
+                }
+            }
+
+            /**
+             * @param {HTMLElement} element 
+             * @return {{ name: string, displayName: string }}
+             */
+            function getAttributeNamesFromLeaf(element) {
+
+                var attrName = ''
+                var attrDisplayName = ''
+                var checkboxSelector = 'input[type=checkbox]'
+                var checkboxEl = $(checkboxSelector, element)
+                attrName = checkboxEl.id.split(':')[2]
+                attrDisplayName = checkboxEl.getAttribute('data-ref-attr-displayname')
+                return {
+                    name: attrName,
+                    displayName: attrDisplayName
+                }
+            }
+
+            /**
+             * @param {HTMLElement} element 
+             * @return {boolean}
+             */
+            function isLeafNode(element) {
+
+                var isLeaf = true
+                if (element) {
+
+                    if (!element.classList.contains('tree-node-content') || !element.title) {
+                        isLeaf = false
+                    }
+
+                }
+                else {
+                    isLeaf = false
+                }
+
+                return isLeaf
+            }
+
+            /**
+             * @param {HTMLElement} element 
+             * @return {boolean}
+             */
+            function isLeafChecked(element) {
+
+                var isChecked = false
+                var checkboxSelector = 'input[type=checkbox]'
+                var checkboxEl = $(checkboxSelector, element)
+                isChecked = checkboxEl.checked
+                return isChecked
+            }
+
+            function setTotalAttrCount() {
+                if (elements.totalAttrCounter) {
+                    elements.totalAttrCounter.textContent = service.getAttributesByEntityId(USER).length
+                }
+                else {
+                    console.log('setTotalAttrCount failed, element not found.')
+                }
+            }
+
+            function setSelectedAttrCount() {
+                if (elements.selectedAttrCounter) {
+                    elements.selectedAttrCounter.textContent = service.getWillEnforcedAttributesByEntityId(USER).length
+                }
+                else {
+                    console.log('setSelectedAttrCount failed, element not found.')
+                }
+            }
+
+            function alphaAscendSorter(a, b) {
+
+                if (a.toString && b.toString) {
+                    a = a.toString()
+                    b = b.toString()
+                }
+
+                if (typeof a === 'string' && typeof b === 'string') {
+                    var a = a.toLowerCase()
+                    var b = b.toLowerCase()
+
+                    if (a > b) {
+                        return 1
+                    }
+                    else if (a < b) {
+                        return -1
+                    }
+                    else {
+                        return 0
+                    }
+                }
+                else {
+                    console.log('alphaAscendSorter failed, only string types are allowed to be sorted.')
+                    return 0
+                }
+            }
+
+            function alphaDescendSorter(a, b) {
+
+                if (a.toString && b.toString) {
+                    a = a.toString()
+                    b = b.toString()
+                }
+
+                if (typeof a === 'string' && typeof b === 'string') {
+                    var a = a.toLowerCase()
+                    var b = b.toLowerCase()
+
+                    if (a > b) {
+                        return -1
+                    }
+                    else if (a < b) {
+                        return 1
+                    }
+                    else {
+                        return 0
+                    }
+                }
+                else {
+                    console.log('alphaDescendSorter failed, only string types are allowed to be sorted.')
+                    return 0
+                }
+            }
+
+            /**
+             * add prefix 'SF_' to entity id & name & displayName
+             * @param {SE.ViewModel.Entity} entity 
+             * @returns {SE.ViewModel.Entity}
+             */
+            function addSFPrefixToEntity(entity) {
+
+                if (entity) {
+
+                    return _extend({}, entity, {
+                        id: util.format('{0}_{1}', 'SF', entity.id),
+                        name: util.format('{0}_{1}', 'SF', entity.name),
+                        displayName: util.format('{0}_{1}', 'SF', entity.displayName),
+                    })
+
+                } else {
+                    console.log('addSFPrefixToEntity failed, entity is null')
+                }
+            }
+
+            /**
+             * add prefix 'SF_' to attribute id & name & displayName
+             * @param {SE.ViewModel.Attribute} attr 
+             * @return {SE.ViewModel.Attribute}
+             */
+            function addSFPrefixToAttribute(attr) {
+                if (attr) {
+
+                    return _extend({}, attr, {
+                        id: util.format('{0}_{1}', 'SF', attr.id),
+                        name: util.format('{0}_{1}', 'SF', attr.name),
+                        displayName: util.format('{0}_{1}', 'SF', attr.displayName),
+                    })
+
+                } else {
+                    console.log('addSFPrefixToAttribute failed, attribute is null')
+                }
+            }
+
+            /**
+             * @param {HTMLElement} element 
+             * @return {boolean}
+             */
+            function isLeafCheckedPrev(namePath, curLeafName) {
+
+                if (namePath.indexOf(PROP_SEP) === 0) {
+                    namePath = namePath.slice(1)
+                }
+
+                namePath = util.format('{0}{1}{2}', namePath, PROP_SEP, curLeafName)
+
+                var entityId = treeviewSelector.wrap.getAttribute('data-id').split(':')[1]
+                var compositeId = util.format('{0}:{1}', entityId, namePath)
+                var refAttr = service.getEnforcedRefAttributeByCompositeId(compositeId)
+
+                return (refAttr && refAttr.willEnforced)
+            }
+
+            /**
+             * @param {HTMLElement} root
+             * @return {SE.APIModel.NxlEnforcedAttribute[]} 
+             */
+            function getChangedAttributeNames(root) {
+
+                var attrNames = []
+                var pathName = ''
+                var pathDisplayName = ''
+                var dfs = function (namePath, displayNamePath, node) {
+
+                    if (node) {
+                        if (isLeafNode(node)) {
+
+                            var leafNames = getAttributeNamesFromLeaf(node)
+                            var rawCompositeId = node.title || ''
+                            var compositeId = rawCompositeId.replace(PROP_SEP, ':')
+                            var attr = service.getAttributeByCompositeId(compositeId)
+                            if (isLeafChecked(node)) {
+
+                                //remove first empty dot
+                                if (namePath.indexOf(PROP_SEP) === 0) {
+                                    namePath = namePath.slice(1)
+                                }
+
+                                if (displayNamePath.indexOf(PROP_SEP) === 0) {
+                                    displayNamePath = displayNamePath.slice(1)
+                                }
+
+                                attrNames.push({
+                                    id: util.format('{0}.{1}', namePath, leafNames.name),
+                                    name: util.format('{0}.{1}', namePath, leafNames.name),
+                                    displayName: util.format('{0}."{1}"', displayNamePath, leafNames.displayName),
+                                    active: true,
+                                    isRef: true,
+                                    datatype: attr.datatype
+                                })
+                            } else if (isLeafCheckedPrev(namePath, leafNames.name)) {
+
+                                //remove first empty dot
+                                if (namePath.indexOf(PROP_SEP) === 0) {
+                                    namePath = namePath.slice(1)
+                                }
+
+                                if (displayNamePath.indexOf(PROP_SEP) === 0) {
+                                    displayNamePath = displayNamePath.slice(1)
+                                }
+
+                                attrNames.push({
+                                    id: util.format('{0}.{1}', namePath, leafNames.name),
+                                    name: util.format('{0}.{1}', namePath, leafNames.name),
+                                    displayName: util.format('{0}."{1}"', displayNamePath, leafNames.displayName),
+                                    active: false,
+                                    isRef: true,
+                                    datatype: attr.datatype,
+                                })
+                            }
+                        }
+                        else {
+
+                            var refAttrNames = getAttributeNamesFromBranch(node)
+                            namePath = util.format('{0}.{1}', namePath, refAttrNames.name)
+                            //namePath = namePath.length === refAttrNames.name.length + 1 ? namePath.slice(1) : namePath
+                            displayNamePath = util.format('{0}."{1}"', displayNamePath, refAttrNames.displayName)
+                            //displayNamePath = displayNamePath.length === refAttrNames.displayName.length + 1 ? displayNamePath.slice(1) : displayNamePath
+                            var contentNode = node.firstElementChild
+                            var childNodesWrap = contentNode.nextElementSibling
+                            var curNode = childNodesWrap.firstElementChild
+                            while (curNode) {
+                                dfs(namePath, displayNamePath, curNode)
+                                curNode = curNode.nextElementSibling
+                            }
+                        }
+                    }
+                }
+
+                var curChildNode = root.firstElementChild
+                while (curChildNode) {
+
+                    dfs(pathName, pathDisplayName, curChildNode)
+                    curChildNode = curChildNode.nextElementSibling
+                }
+
+                return attrNames
+            }
+            //#endregion
+
+            //#region - ui rendering
+
+            /**
+             * @param {NXL_UserAttribute} attr 
+             */
+            function renderAttrTableRow(attr) {
+
+                var compositeId = util.format('{0}:{1}', USER, attr.id)
+                var enforcedRefAttrs = service.getEnforcedRefAttributesByCompositeId(compositeId)
+                var refAttrs = []
+                var refAttrHTMLFrag = ''
+
+                if (attr && isRefAttribute(attr)) {
+                    refAttrs = service.getEnforcedRefAttributesByCompositeId(compositeId)
+                    refAttrHTMLFrag = refAttrs.map(function (attr) {
+                        return renderRefAttributes(attr).outerHTML
+                    }).join('')
+                }
+
+                var el = createDOM(
+                    '<tr>' +
+                    '<td class="td-sm">' +
+                    util.format('<input id="{0}" type="checkbox" class="checkbox hide" checked="{0}"/>', util.format('{0}:{1}', USER, attr.id)) +
+                    util.format('<label for="{0}" class="box"></label>', util.format('{0}:{1}', USER, attr.id)) +
+                    util.format(
+                        '<div class="unfolder-wrap unfolder-wrap-attr {0}" data-id="{1}"><i class="unfolder"></i></div>',
+                        enforcedRefAttrs.length ? '' : 'hide',
+                        util.format('{0}:{1}', attr.table, attr.id)
+                    ) +
+                    '</td>' +
+                    util.format('<td class="td-lg bg-gray-light"><span class="entity-display-name font-default font-md">{0}</span></td>', attr.displayName) +
+                    util.format('<td class="td-lg"><span class="font-default font-md">{0}</span></td>', attr.id) +
+                    util.format('<td class="td-lg bg-gray-light"><span class="font-default font-md">{0}</span></td>', attr.datatype) +
+                    util.format('<td class="td-lg"><span class="font-default font-md">{0}</span></td>', refAttrHTMLFrag) +
+                    '</tr>'
+                )
+
+                var inputEl = $('input[type="checkbox"]', el)
+                var unfoldEl = $('.unfolder-wrap', el)
+
+                inputEl.checked = attr.willEnforced
+                inputEl.onclick = attrCheckHandler
+                inputEl.checked = isRefAttribute(attr) ? !!refAttrs.length : attr.willEnforced
+                unfoldEl.onclick = unfoldHandler
+
+                return el
+            }
+
+            /**
+             * @param {NXL_UserAttribute[]} attrs
+             */
+            function renderAttrTable(attrs) {
+
+                if (elements.tableBody) {
+                    if (Array.isArray(attrs)) {
+                        attrs.forEach(function (attr) {
+                            var rowEl = renderAttrTableRow(attr)
+                            var checkbox = $(util.format('input[id="{0}:{1}"]', USER, attr.id), rowEl)
+                            var compositeId = util.format('{0}:{1}', USER, attr.id)
+
+                            if (checkbox) {
+                                elementMaps.table[compositeId] = checkbox
+                            }
+
+                            elements.tableBody.appendChild(rowEl)
+                        })
+                    }
+                    else {
+                        console.log('renderAttrTable failed, invalid attributes')
+                    }
+                }
+                else {
+                    console.log('renderAttrTable failed, element tableBody not found')
+                }
+            }
+
+            /**
+             * @param {string} entityId
+             * @param {string} refAttrName
+             * @param {string} refAttrDisplayName
+             * @return {HTMLElement}
+             */
+            function renderTableNode(entityId, refAttrName, refAttrDisplayName, refPath) {
+
+                var treeNode = createDOM('<div class="tree-node"></div>')
+                var tableNode = renderTableContentNode(entityId, refAttrName, refAttrDisplayName, refPath)
+                var fieldNodesWrap = createDOM('<div class="child-tree-node"></div>')
+                treeNode.appendChild(tableNode)
+                treeNode.appendChild(fieldNodesWrap)
+                return treeNode
+            }
+
+            /**
+             * @param {string} entityId
+             * @param {string} refAttrName
+             * @param {string} refAttrDisplayName
+             * @return {HTMLElement}
+             */
+            function renderTableContentNode(entityId, refAttrName, refAttrDisplayName, refPath) {
+
+                var dataPath = refPath ? util.format('{0}{1}{2}', refPath, PROP_SEP, refAttrName) : refAttrName
+                var wrap = createDOM(util.format('<div class="tree-node-content" data-ref-attr="{0}" data-ref-attr-displayname="{1}" data-path="{2}"></div>', refAttrName, refAttrDisplayName, dataPath))
+                var toggleBtn = createDOM(util.format('<i class="box btn attr-toggle-icon" data-table="{0}" data-expand="false">+</i>', entityId))
+                var tableName = createDOM(util.format('<span class="table-name font-bold">{0}</span>', refAttrDisplayName))
+
+                toggleBtn.onclick = toggleTreeNodeHandler
+                wrap.appendChild(toggleBtn)
+                wrap.appendChild(tableName)
+                return wrap
+            }
+
+            /**
+             * @param {SE.ViewModel.Attribute} attr 
+             * @param {string} entityId
+             * @return {HTMLElement}
+             */
+            function renderLeafNode(attr, entityId, refAttrName, refPath) {
+
+                if (!attr) {
+                    console.log('renderLeafNode failed, invalid attribute')
+                    return
+                }
+                var baseRefAttrCompositeId = treeviewSelector.wrap.getAttribute('data-ref-attr').slice(TABLE_REF_PREFIX.length + 1)
+                var enforcedRefAttributes = service.getEnforcedRefAttributesByCompositeId(baseRefAttrCompositeId)
+                var curRefPath = util.format('{0}{1}{2}', refPath, PROP_SEP, attr.name)
+                var isEnforcedBefore = enforcedRefAttributes.filter(function (a) { return a.name === curRefPath }).length ? true : false
+                var compositeId = util.format('{0}:{1}:{2}', TREEVIEW_ATTR_PREFIX + (++TREE_NODE_ID).toString(), refAttrName, attr.name)
+                var wrap = createDOM(util.format('<div class="tree-node-content" title="{0}"></div>', entityId + PROP_SEP + attr.name))
+                var checkboxWrap = createDOM('<div class="box checkbox-sm-wrap"></div>')
+                var checkboxInput = createDOM(util.format('<input id="{0}" type="checkbox" class="checkbox-sm hide" data-ref-attr-displayname="{1}" {2}/>', compositeId, attr.displayName, isEnforcedBefore ? 'checked' : ''))
+                var checkboxLabel = createDOM(util.format('<label for="{0}" class="box"></label>', compositeId))
+                var attrNameEl = createDOM(util.format('<span class="field-name">{0}</span>', attr.displayName))
+                wrap.appendChild(checkboxWrap)
+                wrap.appendChild(attrNameEl)
+                checkboxWrap.appendChild(checkboxInput)
+                checkboxWrap.appendChild(checkboxLabel)
+                return wrap
+            }
+
+            /**
+             * 
+             * @param {SE.Tables.Attribute} attr 
+             */
+            function renderRefAttributes(attr) {
+
+                return createDOM(util.format('<p class="font-sm" title={0}>{1}</p>', attr.name, attr.displayName))
+            }
+
+            function innerRenderAttributeNodes(entityId, refAttrName, wrap, refPath) {
+
+                if (!entityId || !wrap) {
+                    console.log('innerRenderAttributeNodes failed')
+                    return
+                }
+
+                var attrs = service.getAttributesByEntityId(entityId)
+                if (Array.isArray(attrs)) {
+                    attrs.forEach(function (attr) {
+                        if (attr.datatype.toLowerCase() === 'reference') {
+                            wrap.appendChild(renderTableNode(attr.refTable, attr.name, attr.displayName, refPath))
+                        }
+                        else {
+                            wrap.appendChild(renderLeafNode(attr, entityId, refAttrName, refPath))
+                        }
+                    })
+                }
+                else {
+                    var errorMsg = util.format('innerRenderAttributeNodes -> get entity: {0} meta attributes failed', entityId)
+                    console.log(errorMsg)
+                }
+            }
+
+            function updateRefAttrTableCell(compositeId) {
+
+                var td = getRefAttributeTableCell(compositeId)
+                if (td) {
+
+                    td.textContent = ''
+                    var refAttrs = service.getEnforcedRefAttributesByCompositeId(compositeId)
+                    var refAttrCell = refAttrs.map(function (attr) {
+                        return renderRefAttributes(attr)
+                    })
+                    refAttrCell.forEach(function (el) {
+                        td.appendChild(el)
+                    })
+                }
+                else {
+                    console.log(util.format('updateRefAttrTableCell failed, compositeId: {0}', compositeId))
+                }
+            }
+            //#endregion
+
+            //#region - hydrators
+
+            /**
+             * store entity model in the tables
+             * @param {SE.APIModel.NxlMetaEntity} model
+             */
+            function metaEntityHydrator(model) {
+
+                if (model) {
+
+                    var entity = {
+                        id: model.id,
+                        name: model.name,
+                        displayName: model.displayName,
+                        description: model.description || '',
+                    }
+
+                    store.entityInfo[entity.id] = entity
+                }
+                else {
+                    console.log('metaEntityHydrator failed, model invalid')
+                }
+            }
+
+            function entityEnforcerHydrator(entityId, isEnforced) {
+
+                var enforcer = {
+                    id: entityId,
+                    enforced: isEnforced,
+                    willEnforced: isEnforced
+                }
+
+                store.entityEnforcer[entityId] = enforcer
+            }
+            /**
+             * @deprecated
+             * @param {SE.APIModel.NxlMetaAttribute} model 
+             * @param {string} entityId
+             */
+            function metaAttributeHydrator(model, entityId) {
+
+                if (model && entityId) {
+
+                    var attr = {
+                        id: model.id,
+                        name: model.name,
+                        displayName: model.displayName,
+                        description: model.description || '',
+                        datatype: model.datatype,
+                        table: entityId,
+                        isRef: model.isRef,
+                        refTable: model.refTable,
+                    }
+
+                    var compositeId = util.format('{0}:{1}', entityId, attr.id)
+
+                    if (!store.attrInfo[compositeId]) {
+                        store.attrInfo[compositeId] = attr
+                    }
+                }
+                else {
+                    console.log('metaAttributeHydrator failed, model invalid')
+                }
+            }
+
+            function entityAttrFetchStatusHydrator(entityId, isFetched) {
+
+                var attrFetchStatus = {
+                    id: entityId,
+                    isFetched: isFetched,
+                }
+
+                store.entityAttrFetchStatus[entityId] = attrFetchStatus
+            }
+
+            function attrEnforcerHydrator(compositeId, isEnforced) {
+
+                var attrId = compositeId.split(':')[1]
+
+                var enforcer = {
+                    id: attrId,
+                    enforced: isEnforced,
+                    willEnforced: isEnforced
+                }
+
+                store.attrEnforcer[compositeId] = enforcer
+            }
+
+            /**
+             * @param {SE.APIModel.NxlEnforcedAttribute} model 
+             * @param {string} entityId 
+             */
+            function refAttributeHydrator(model, entityId) {
+                if (model && entityId) {
+
+                    var compositeId = util.format('{0}:{1}', entityId, model.id)
+                    var attr = _extend({}, model, {
+                        description: '',
+                        table: entityId,
+                    })
+
+                    store.refAttrInfo[compositeId] = attr
+                }
+                else {
+                    console.log(util.format('refAttributeHydrator failed, model: {0}, entityId: {1}', model, entityId))
+                }
+            }
+
+            function refAttrEnforcerHydrator(compositeId, isEnforced) {
+
+                var attrId = compositeId.split(':')[1]
+                var enforcer = {
+                    id: attrId,
+                    enforced: isEnforced,
+                    willEnforced: isEnforced
+                }
+                store.refAttrEnforcer[compositeId] = enforcer
+            }
+
+            //#endregion
+
+            //#region - dehydrator
+
+            /**
+             * 
+             * @param {SE.ViewModel.Attribute} attr 
+             * @return {SE.APIModel.NxlMetaAttribute}
+             */
+            function attributeDehydrator(attr) {
+                return {
+                    id: attr.id,
+                    name: attr.name,
+                    displayName: attr.displayName,
+                    datatype: attr.datatype,
+                    description: attr.description,
+                    isRef: attr.isRef,
+                    refTable: attr.refTable,
+                    table: attr.table,
+                }
+            }
+
+            //#endregion
+        })()
+    </script>
+</apex:page>

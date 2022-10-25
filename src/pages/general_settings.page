@@ -1,0 +1,801 @@
+<apex:page docType="html-5.0" controller="NxlSettingsController">
+    <apex:includeScript value="{!$Resource.util}" />
+    <apex:includeScript value="{!$Resource.promise_polyfill}" />
+    <link id="classicStyle" rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/classic.css')}"></link>
+    <script type="text/javascript">
+        if (nxl && nxl.util && nxl.util.isLightning()) {
+            var header = document.querySelector('head')
+            var styler = document.querySelector('#classicStyle')
+
+            if (header && styler) {
+                header.textContent = ''
+                try {
+                    document.body.removeChild(styler)
+                } catch (e) {
+                    console.log(e)
+                }
+            } else {
+                console.log('******* remove resources failed *******')
+            }
+        }
+    </script>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/common.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/topbar.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/general_settings.css')}"></link>
+    <div>
+        <div class="header">
+            <div class="topbar">
+                <div id="topbarHomeBtn" class="col btn co-title-wrap">
+                    <img class="co-title" src="{!URLFOR($Resource.nxl_frontend, '/img/nxl_title_sm.png')}"></img>
+                    <h6 class="co-title-desc font-sm font-bold">Entitlement Management</h6>
+                </div>
+                <div id="topbarSaveBtn" class="col btn topbar-btn-wrap">
+                    <i class="box save-icon"></i>
+                    <span class="topbar-btn-text font-md">Save Settings</span>
+                </div>
+                <i class="box sep-v"></i>
+                <div id="topbarDiscardBtn" class="col btn topbar-btn-wrap">
+                    <i class="box discard-icon"></i>
+                    <span class="topbar-btn-text font-md">Discard Changes</span>
+                </div>
+                <i class="box sep-v hide"></i>
+                <div id="topbarExportAndSaveBtn" class="col btn topbar-btn-wrap hide">
+                    <i class="box export-icon"></i>
+                    <span class="topbar-btn-text font-md"></span>
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            <div class="content-header">
+                <img class="box content-header-avatar" src="{!URLFOR($Resource.nxl_frontend, '/img/nxl_general_settings.png')}"></img>
+                <div class="box content-title-wrap">
+                    <h2 class="content-title font-bold">General Settings</h2>
+                    <p class="content-title-desc font-md">Policy controller and other Entitlement Management settings</p>
+                </div>
+                <hr class="sep-title-h" />
+            </div>
+            <div class="content-body">
+                <div class="section">
+                    <div class="section-title-wrap">
+                        <h3 class="section-title font-lg font-bold">NextLabs Platform Configuration</h3>
+                        <p class="section-title-desc font-md">Configure the host and port for the CloudAz or Control Center Policy Controller REST API</p>
+                        <hr class="sep-title-h" />
+                    </div>
+                    <div class="section-content">
+                        <form>
+                            <div class="form-control-group">
+                                <label for="pcHost" class="block form-control form-label font-md font-bold">Policy Controller (PDP) Host</label>
+                                <input id="pcHost" class="form-control form-input" type="text" placeholder="Example: nxldemo-jpc.cloudaz.com;" />
+                            </div>
+                            <div class="form-control-group">
+                                <label for="pcPort" class="block form-control form-label font-md font-bold">Policy Controller Port</label>
+                                <input id="pcPort" class="form-control form-input https-input" type="text" placeholder="Example: 443;" />
+                                <div class="box https-wrap">
+                                    <input id="pcHttps" type="checkbox" />
+                                    <label for="pcHttps">HTTPS</label>
+                                </div>
+                            </div>
+                            <div class="form-control-group">
+                                <label for="oauthHost" class="block form-control form-label font-md font-bold">Control Center Server Host</label>
+                                <input id="oauthHost" class="form-control form-input" type="text" placeholder="Example: nxldemo-cc.cloudaz.com;" />
+                            </div>
+                            <div class="form-control-group">
+                                <label for="oauthPort" class="block form-control form-label font-md font-bold">Control Center Port</label>
+                                <input id="oauthPort" class="form-control form-input" type="text" placeholder="Example: 443;" />
+                            </div>
+                            <div class="form-control-group">
+                                <label for="clientId" class="block form-control form-label font-md font-bold">Client ID</label>
+                                <input id="clientId" class="form-control form-input" type="text" placeholder="Example: apiclient;" />
+                            </div>
+                            <div class="form-control-group">
+                                <label for="clientKey" class="block form-control form-label font-md font-bold">Client Secret Key</label>
+                                <input id="clientKey" class="form-control form-input" type="password" placeholder="Example: 123dynamics!;" />
+                            </div>
+                            <div class="form-control-group">
+                                <input id="testConnectionBtn" class="form-control form-submit" type="submit" value="test connection" />
+                                <label id="testConnnectionError" class="block form-control form-label font-md font-red hide">X Connection could not be established.</label>
+                                <label id="testConnnectionMsg" class="block form-control form-label font-md font-green"></label>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <hr class="sep-section-h" />
+                <div class="section">
+                    <div class="section-title-wrap">
+                        <h3 class="section-title font-lg font-bold">Default Policy Enforcement Settings</h3>
+                        <p class="section-title-desc font-md">Default behavior in case of system or configuration issues</p>
+                        <hr class="sep-title-h" />
+                    </div>
+                    <div class="section-content">
+                        <form>
+                            <div class="form-control-group">
+                                <label for="policyDecision" class="block form-control form-label font-md font-bold">Policy Decision</label>
+                                <select id="policyDecision" class="form-control form-select">
+                                    <option selected="true" value="Deny">Deny</option>
+                                </select>
+                            </div>
+                            <div class="form-control-group">
+                                <label for="policyMsg" class="block form-control form-label font-md font-bold">Exception Message</label>
+                                <div class="section-sub-title-wrap">
+                                    <p class="section-title-desc font-md">Error message if system error occurs</p>
+                                    <hr class="sep-title-h" />
+                                </div>
+                                <textarea id="policyMsg" class="form-control form-textarea" placeholder="Access denied due to system error. Try again and contact the system administrator if the problem persists."></textarea>
+                            </div>
+                            <div class="form-control-group">
+                                <label for="policyDefaultMsg" class="block form-control form-label font-md font-bold">Default Message</label>
+                                <div class="section-sub-title-wrap">
+                                    <p class="section-title-desc font-md">Default message if the user is not authorized or no applicable policies</p>
+                                    <hr class="sep-title-h" />
+                                </div>
+                                <textarea id="policyDefaultMsg" class="form-control form-textarea" placeholder="Access denied, you are not authorized to perform this operation."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <hr class="sep-section-h" />
+                <div class="section">
+                    <div class="section-title-wrap">
+                        <h3 class="section-title font-lg font-bold">Policy Settings</h3>
+                        <p class="section-title-desc font-md">Sync policies from CloudAz or Control Center to Salesforce</p>
+                        <hr class="sep-title-h" />
+                    </div>
+                    <div class="section-content">
+                        <form>
+                            <div class="form-control-group">
+                                <label class="block form-control form-label font-md hide">Every
+                                    <input id="cacheInterval" class="form-control form-input-inline" type="text" placeholder="1" /> Hour(s)
+                                </label>
+                                <button id="updateScheduleBtn" class="form-control form-update-cache">Update Now</button>
+                                <label id="updatenowMsg" class="block form-control form-label font-md font-green hide"></label>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="content-footer">
+                <input id="gsSaveBtn" type="submit" class="form-control form-submit" value="Save Settings" />&nbsp;
+                <input id="gsDiscardBtn" type="submit" class="form-control form-submit" value="Discard Changes" />
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        ; (function () {
+            var util = window.nxl.util
+            var $ = util.$
+            var $$ = util.$$
+            var GENERAL_SETTINGS = 'general_settings'
+            var TEST_CONN_SUCCESS = '√ Connection established successfully.';
+            var TEST_CONN_FAIL = 'X Connection could not be established.';
+            var TEST_CONN_PC_HOST_INVALID = 'Please input correct policy controller server address.';
+            var TEST_CONN_PC_PORT_INVALID = 'Please input correct policy controller server port.';
+            var TEST_CONN_OAUTH_HOST_INVALID = 'Please input correct Control Center server address.';
+            var TEST_CONN_OAUTH_PORT_INVALID = 'Please input correct Control Center server port.';
+            var REQUEST_MSG_SUCCESS = 'OK'
+            var SECURE_ENTITY_TYPE = '280240000'
+            var GENERAL_SETTING_TYPE = '280240004'
+            var UPDATE_NOW_RUNNING = 'A background job is scheduled and running, and it will take a few minutes. You can close this page without waiting.'
+            var DEFAULT_EXCEPT_MSG = 'Access denied due to system error. Try again and contact the system administrator if the problem persists.'
+            var GS_EXCEPT_MSG = DEFAULT_EXCEPT_MSG
+            var modelBackup = {}
+            var log = console.log.bind(console);
+
+            var rpc = function (resource) {
+                return new Promise(function (resolve, reject) {
+
+                    var config = { escape: false }
+
+                    Visualforce.remoting.Manager.invokeAction(resource, function (result, event) {
+                        if (event.status) {
+                            resolve()
+                        } else {
+                            console.log(event.message)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+            var fetchData = function (resource) {
+                return new Promise(function (resolve, reject) {
+
+                    var config = { escape: false }
+
+                    Visualforce.remoting.Manager.invokeAction(resource, function (result, event) {
+                        if (event.status) {
+                            try {
+                                var res = JSON.parse(result)
+                                if (res.error || res.status !== 200) {
+                                    reject(new Error(util.format('fetchData failed, msg: {0}', res.error)))
+                                } else {
+                                    resolve(JSON.parse(res.response))
+                                }
+                            } catch (e) {
+                                console.log(e)
+                                reject(GS_EXCEPT_MSG)
+                            }
+                        } else {
+                            console.log(event.message)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+            var postData = function (resource, data) {
+                return new Promise(function (resolve, reject) {
+
+                    var config = { escape: false }
+
+                    if (!data || !data.name || !data.content) {
+                        console.log(util.format('postData failed, invalid data: {0}', data))
+                        return reject(new Error(GS_EXCEPT_MSG))
+                    }
+
+                    Visualforce.remoting.Manager.invokeAction(resource, data.name, data.enabled, data.type, data.content, function (result, event) {
+                        if (event.status) {
+
+                            try {
+
+                                var res = JSON.parse(result)
+
+                                if (res.error || res.status !== 200) {
+                                    console.log(util.format('postData failed, msg: {0}', res.error))
+                                    reject(new Error(GS_EXCEPT_MSG))
+                                } else {
+                                    resolve(res.response)
+                                }
+                            } catch (e) {
+                                reject(e)
+                            }
+
+                        } else {
+                            console.log(event.message)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+                //#region entry point
+                ; (function init() {
+
+                    initListeners()
+
+                    getGSData()
+                        .then(function (data) {
+
+                            if (data && data.policymsg) {
+                                GS_EXCEPT_MSG = data.policymsg
+                            }
+
+                            modelBackup = data
+
+                            var vm = gsViewModelAdapter(data)
+                            bindGSViewModelToView(vm)
+
+                        })
+                        .catch(UIErrorHandler)
+
+                })()
+
+            function initListeners() {
+
+                var topbarHomeBtn = $('#topbarHomeBtn')
+                var topbarSaveBtn = $('#topbarSaveBtn')
+                var topbarDiscardBtn = $('#topbarDiscardBtn')
+                var gsTestConnBtn = $('#testConnectionBtn')
+                var gsSaveBtn = $('#gsSaveBtn')
+                var gsDiscardBtn = $('#gsDiscardBtn')
+                var updateNowBtn = $('#updateScheduleBtn')
+
+                if (
+                    topbarHomeBtn && topbarSaveBtn && topbarDiscardBtn &&
+                    gsTestConnBtn && gsSaveBtn && gsDiscardBtn && updateNowBtn) {
+
+                    topbarHomeBtn.onclick = homeHandler.bind(this)
+                    topbarSaveBtn.onclick = saveHandler.bind(this)
+                    topbarDiscardBtn.onclick = discardHandler.bind(this)
+
+                    gsTestConnBtn.onclick = testConnHandler.bind(this)
+                    gsSaveBtn.onclick = saveHandler.bind(this)
+                    gsDiscardBtn.onclick = discardHandler.bind(this)
+                    updateNowBtn.onclick = updateNowHandler.bind(this)
+                }
+                else {
+                    log('initListeners failed')
+                }
+
+            }
+            //#endregion
+
+            //#region event handlers
+            function testConnHandler(evt) {
+                log('testConnHandler executed')
+
+                evt.preventDefault()
+                evt.target.disabled = true
+
+                var testConnMsgEl = $('#testConnnectionMsg')
+                var testConnnectionErrorEl = $('#testConnnectionError')
+
+                var vm = getGSViewModelFromView()
+                var isPcHostValid = isHostValid(vm.pcHost);
+                var isPcPortValid = isPortValid(vm.pcPort);
+                var isOAuthHostValid = isHostValid(vm.oauthHost);
+                var isOAuthPortValid = isPortValid(vm.oauthPort);
+
+                if (isPcHostValid && isPcPortValid && isOAuthHostValid && isOAuthPortValid) {
+                    var model = testConnModelAdapter(vm);
+                    var jpc = (vm.https && vm.pcPort === '443') ? util.format('https://{0}', vm.pcHost) : util.format('{0}://{1}:{2}', vm.https ? 'https' : 'http', vm.pcHost, vm.pcPort)
+                    var cc = util.format('https://{0}', vm.oauthHost)
+
+                    createRemoteSiteSettings(jpc, cc)
+                        .then(function () { return postTestData(model) })
+                        .then(function (res) {
+                            var vm = testConnViewModelAdapter(res);
+                            bindTestConnViewModelToView(vm);
+                            reEnableTestBtnHandler(null);
+                        })
+                        .catch(function (e) {
+                            log(e);
+                            var vm = testConnViewModelAdapter({ status: 10000, response: '', error: e.message })
+                            bindTestConnViewModelToView(vm)
+                            reEnableTestBtnHandler()
+                        });
+                } else {
+                    if (!isPcHostValid) {
+                        showConnectErrorMsg(TEST_CONN_PC_HOST_INVALID);
+                    } else if (!isPcPortValid) {
+                        showConnectErrorMsg(TEST_CONN_PC_PORT_INVALID);
+                    } else if (!isOAuthHostValid) {
+                        showConnectErrorMsg(TEST_CONN_OAUTH_HOST_INVALID);
+                    } else {
+                        showConnectErrorMsg(TEST_CONN_OAUTH_PORT_INVALID);
+                    }
+                    reEnableTestBtnHandler()
+                }
+            }
+
+            function saveHandler(evt) {
+                log('saveHandler executed')
+                evt.preventDefault()
+
+                var vm = getGSViewModelFromView()
+                var model = gsModelAdapter(vm)
+
+                postGSData(model).then(function (data) {
+
+                    var jpc = (vm.https && vm.port === '443') ? util.format('https://{0}', vm.pchost) : util.format('{0}://{1}:{2}', vm.https ? 'https' : 'http', vm.pcHost, vm.pcPort)
+                    var cc = util.format('https://{0}', vm.oauthHost)
+
+                    createRemoteSiteSettings(jpc, cc)
+                        .then(function (res) {
+                            log(res)
+                            util.reloadPage()
+                        })
+
+                }).catch(function (e) {
+                    log(e)
+                    //alert(e.message)
+                })
+            }
+
+            function discardHandler(evt) {
+                log('discardHandler executed')
+                evt.preventDefault()
+
+                var vm = gsViewModelAdapter(modelBackup)
+                log(vm)
+                bindGSViewModelToView(vm)
+            }
+
+            function homeHandler(evt) {
+                log('homeHandler executed')
+                //window.location.href = window.location.href + '/..'
+            }
+
+            function updateNowHandler(evt) {
+
+                evt.preventDefault()
+
+                var updateNowBtn = $('#updateScheduleBtn')
+                var updatenowMsg = $('#updatenowMsg')
+                var resource = '{!$RemoteAction.NxlSettingsController.UpdateNowHandler}'
+
+                updateNowBtn.disabled = true
+                updatenowMsg.classList.remove('hide')
+                updatenowMsg.classList.remove('font-green')
+                updatenowMsg.classList.remove('font-red')
+
+                rpc(resource)
+                    .then(function (res) {
+                        updatenowMsg.textContent = UPDATE_NOW_RUNNING
+                        updatenowMsg.classList.add('font-green')
+                        return Promise.resolve()
+                    })
+                    .catch(function (err) {
+                        console.log(err)
+                        updatenowMsg.textContent = GS_EXCEPT_MSG
+                        updatenowMsg.classList.add('font-red')
+                        updateNowBtn.disabled = false
+                    })
+            }
+            //#endregion
+
+            //#region javascript remoting
+
+            /**
+             * get general setting data
+             * @return {object} - the general setting data structure defined in restful api 
+             */
+            function getGSData() {
+                //your code here...
+                var resource = '{!$RemoteAction.NxlSettingsController.GetGeneralSettings}'
+
+                return fetchData(resource)
+            }
+
+            /**
+             * post general setting data
+             * @param { object } model - the general setting data structure defined in restful api 
+             */
+            function postGSData(model) {
+
+                log(model)
+
+                var resource = '{!$RemoteAction.NxlSettingsController.SaveGeneralSettings}'
+                var data = {
+                    name: GENERAL_SETTINGS,
+                    enabled: true,
+                    type: GENERAL_SETTING_TYPE,
+                    content: JSON.stringify(model)
+                }
+
+                return postData(resource, data)
+            }
+
+            /**
+             * post test connection data
+             * @param { object } model - the test connection data structure defined in restful api 
+             */
+            function postTestData(model) {
+                log(model)
+
+                var resource = '{!$RemoteAction.NxlSettingsController.TestConnection}'
+
+                return new Promise(function (resolve, reject) {
+
+                    var config = { escape: false }
+
+                    Visualforce.remoting.Manager.invokeAction(resource, JSON.stringify(model), function (result, event) {
+                        if (event.status) {
+
+                            try {
+
+                                var res = JSON.parse(result)
+
+                                if (res.error || res.status !== 200) {
+                                    console.log(util.format('postTestData failed, msg: {0}', res.error))
+                                    reject(new Error(GS_EXCEPT_MSG))
+                                } else {
+                                    resolve(res)
+                                }
+                            } catch (e) {
+                                reject(e)
+                            }
+
+                        } else {
+                            console.log(event.message)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+            function createRemoteSiteSettings(jpc, cc) {
+
+                var resource = '{!$RemoteAction.NxlSettingsController.SaveRemoteSiteSettings}'
+
+                return new Promise(function (resolve, reject) {
+
+                    var config = { escape: false }
+
+                    Visualforce.remoting.Manager.invokeAction(resource, jpc, cc, function (result, event) {
+                        if (event.status) {
+
+                            try {
+
+                                var res = JSON.parse(result)
+
+                                if (res.error || res.status !== 200) {
+                                    console.log(util.format('createRemoteSiteSettings failed, msg: {0}', res.error))
+                                    reject(new Error(GS_EXCEPT_MSG))
+                                } else {
+                                    resolve(res.response)
+                                }
+                            } catch (e) {
+                                reject(e)
+                            }
+
+                        } else {
+                            console.log(event.message)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    }, config)
+                })
+            }
+
+            function UIErrorHandler(e) {
+                console.log(e)
+                alert(e.message)
+            }
+            //#endregion
+
+            //#region adapters
+            /**
+             * convert general settings model from backend to GeneralSettingViewModel
+             * @param {any} model 
+             * @returns {GeneralSettingsViewModel}
+             */
+            function gsViewModelAdapter(model) {
+                var vm = {}
+                //your code here...
+
+                var payload = model
+
+                if (!payload) {
+                    log('gsViewModelAdapter failed, payload null')
+                    return vm
+                }
+
+                vm.pcHost = payload.pchost
+                vm.pcPort = payload.pcport
+                vm.https = payload.pchttps
+                vm.oauthHost = payload.oauthhost
+                vm.oauthPort = payload.oauthport
+                vm.clientId = payload.clientid
+                vm.clientKey = payload.clientkey
+                vm.policyDecision = payload.policydecision
+                vm.policyMsg = payload.policymsg
+                vm.policyDefaultMsg = payload.policydefaultmsg
+                vm.cacheInterval = payload.cacheInterval
+
+                return vm
+            }
+
+            /**
+             * convert GeneralSettingsViewModel to backend model
+             * @param {GeneralSettingsViewModel} vm 
+             * @returns {any}
+             */
+            function gsModelAdapter(vm) {
+                var model = {}
+                //your code here...
+                model.pchost = vm.pcHost
+                model.pcport = vm.pcPort
+                model.pchttps = vm.https
+                model.oauthhost = vm.oauthHost
+                model.oauthport = vm.oauthPort
+                model.clientid = vm.clientId
+                model.clientkey = vm.clientKey
+                model.policydecision = vm.policyDecision
+                model.policymsg = vm.policyMsg
+                model.policydefaultmsg = vm.policyDefaultMsg
+                model.cacheInterval = vm.cacheInterval
+
+                return model
+            }
+
+            /**
+             * convert test connection backend model from backend to TestConnectionViewModel
+             * @param {boolean} isSuccess
+             * @returns {TestConnectionViewModel}
+             */
+            function testConnViewModelAdapter(payload) {
+                var vm = {}
+
+                var isSuccess = (payload && (payload.status === 200))
+                vm.success = isSuccess
+                vm.statusDesc = ''
+
+                if (!vm.success) {
+                    vm.statusDesc = TEST_CONN_FAIL
+                }
+
+                return vm
+            }
+
+            /**
+             * convert TestConnectionViewModel to backend model
+             * @param {GeneralSettingsViewModel} vm 
+             * @returns {any}
+             */
+            function testConnModelAdapter(vm) {
+                var model = {}
+                //your code here...
+                model.pchost = vm.pcHost
+                model.pcport = vm.pcPort
+                model.pchttps = vm.https
+                model.oauthhost = vm.oauthHost
+                model.oauthport = vm.oauthPort
+                model.clientid = vm.clientId
+                model.clientkey = vm.clientKey
+
+                return model
+            }
+            //#endregion
+
+            //#region MISC
+            /**
+             * bind general settings viewmodel to view
+             * @param {GeneralSettingsViewModel} vm 
+             */
+            function bindGSViewModelToView(vm) {
+
+                var pcHostEl = $('#pcHost')
+                var pcPortEl = $('#pcPort')
+                var httpsEl = $('#pcHttps')
+                var oauthHostEl = $('#oauthHost')
+                var oauthPortEl = $('#oauthPort')
+                var clientIdEl = $('#clientId')
+                var clientKeyEl = $('#clientKey')
+
+                var policyDecisionEl = $('#policyDecision')
+                var policyMsgEl = $('#policyMsg')
+                var policyDefaultMsgEl = $('#policyDefaultMsg')
+                var cacheIntervalEl = $('#cacheInterval')
+
+                if (
+                    pcHostEl && pcPortEl && oauthHostEl && oauthPortEl &&
+                    clientIdEl && clientKeyEl && policyDecisionEl &&
+                    policyMsgEl && policyDefaultMsgEl && cacheIntervalEl) {
+
+                    pcHostEl.value = vm.pcHost || ''
+                    pcPortEl.value = vm.pcPort || ''
+                    httpsEl.checked = vm.https ? true : false
+                    oauthHostEl.value = vm.oauthHost || ''
+                    oauthPortEl.value = vm.oauthPort || ''
+                    clientIdEl.value = vm.clientId || ''
+                    clientKeyEl.value = vm.clientKey || ''
+                    policyDecisionEl.value = vm.policyDecision || 'Deny'
+                    policyMsgEl.value = vm.policyMsg || ''
+                    policyDefaultMsgEl.value = vm.policyDefaultMsg || ''
+                    cacheIntervalEl.value = vm.cacheInterval || ''
+                }
+                else {
+                    log('bindGSViewModelToView failed, elements not found')
+                }
+            }
+
+            /**
+             * bind test connection response viewmodel to view
+             * @param {TestConnectionViewModel} vm 
+             */
+            function bindTestConnViewModelToView(vm) {
+
+                var testConnErrorMsgEl = $('#testConnnectionError');
+                var testConnSuccessMsgEl = $('#testConnnectionMsg');
+
+                if (testConnErrorMsgEl && testConnSuccessMsgEl) {
+
+                    if (vm.success) {
+                        testConnErrorMsgEl.classList.add('hide');
+                        testConnSuccessMsgEl.classList.remove('hide');
+                        testConnSuccessMsgEl.innerHTML = TEST_CONN_SUCCESS;
+                    }
+                    else {
+                        testConnErrorMsgEl.classList.remove('hide');
+                        testConnSuccessMsgEl.classList.add('hide');
+                        testConnErrorMsgEl.innerHTML = vm.statusDesc;
+                    }
+                }
+                else {
+                    log('bindTestConnViewModelToView failed, elements not found');
+                }
+            }
+
+            /**
+             * get general settings viewmodel
+             * @returns {GeneralSettingsViewModel}
+             */
+            function getGSViewModelFromView() {
+
+                var vm = {}
+                var pcHostEl = $('#pcHost')
+                var pcPortEl = $('#pcPort')
+                var httpsEl = $('#pcHttps')
+                var oauthHostEl = $('#oauthHost')
+                var oauthPortEl = $('#oauthPort')
+                var clientIdEl = $('#clientId')
+                var clientKeyEl = $('#clientKey')
+
+                var policyDecisionEl = $('#policyDecision')
+                var policyMsgEl = $('#policyMsg')
+                var policyDefaultMsgEl = $('#policyDefaultMsg')
+                var cacheIntervalEl = $('#cacheInterval')
+
+                if (
+                    pcHostEl && pcPortEl && oauthHostEl && oauthPortEl &&
+                    clientIdEl && clientKeyEl && policyDecisionEl &&
+                    policyMsgEl && policyDefaultMsgEl && cacheIntervalEl) {
+
+                    vm.pcHost = pcHostEl.value || ''
+                    vm.pcPort = pcPortEl.value || ''
+                    vm.https = typeof httpsEl.checked === 'boolean' ? httpsEl.checked : false
+                    vm.oauthHost = oauthHostEl.value || ''
+                    vm.oauthPort = oauthPortEl.value || ''
+                    vm.clientId = clientIdEl.value || ''
+                    vm.clientKey = clientKeyEl.value || ''
+                    vm.policyDecision = policyDecisionEl.value || 'Deny'
+                    vm.policyMsg = policyMsgEl.value || ''
+                    vm.policyDefaultMsg = policyDefaultMsgEl.value || ''
+                    vm.cacheInterval = cacheIntervalEl.value || ''
+                }
+                return vm
+            }
+
+            /**
+             * 
+             * @param {string} url 
+             * @return {boolean}
+             */
+            function isHostValid(url) {
+
+                var isValid = true;
+                var urlReg = /(https|http)?(?:\:\/\/)?([a-zA-Z0-9\-.]+)(?:\:)?(\d+)?(\/[a-zA-Z0-9.\-_~!$&'()*+,;=:@/%]+)?\??/i;
+                var matches = urlReg.exec(url) || [];
+                var schema = matches[1];
+                var host = matches[2];
+                var port = matches[3];
+                var path = matches[4];
+
+                if (!host || schema || port || path) {
+                    isValid = false;
+                }
+
+                return isValid;
+            }
+
+            /**
+             * 
+             * @param {string} port 
+             * @return {boolean}
+             */
+            function isPortValid(port) {
+                var isValid = true;
+
+                if (!port) {
+                    isValid = false;
+                }
+
+                if (isNaN(Number(port))) {
+                    isValid = false;
+                }
+
+                return isValid;
+            }
+
+            function reEnableTestBtnHandler(evt) {
+                var gsTestConnBtn = $('#testConnectionBtn');
+
+                if (gsTestConnBtn) {
+                    gsTestConnBtn.disabled = false;
+                } else {
+                    log('test connection btn can not be found');
+                }
+            }
+
+            function showConnectErrorMsg(msg) {
+
+                var vm = {
+                    success: false,
+                    statusDesc: msg,
+                }
+
+                bindTestConnViewModelToView(vm);
+            }
+            //#endregion
+        })()
+    </script>
+</apex:page>

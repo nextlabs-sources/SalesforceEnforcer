@@ -1,0 +1,3111 @@
+<apex:page docType="html-5.0" controller="NxlSettingsController">
+    <apex:includeScript value="{!$Resource.util}" />
+    <apex:includeScript value="{!$Resource.promise_polyfill}" />
+    <link id="classicStyle" rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/classic.css')}"></link>
+    <script type="text/javascript">
+        if (nxl && nxl.util && nxl.util.isLightning()) {
+            var header = document.querySelector('head')
+            var styler = document.querySelector('#classicStyle')
+
+            if (header && styler) {
+                header.textContent = ''
+                try {
+                    document.body.removeChild(styler)
+                } catch (e) {
+                    console.log(e)
+                }
+            } else {
+                console.log('******* remove resources failed *******')
+            }
+        }
+    </script>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/common.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/topbar.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/progressbar.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/field-selector.css')}"></link>
+    <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.nxl_frontend, '/css/secure_entities.css')}"></link>
+    <div>
+        <div class="header">
+            <div class="topbar">
+                <div id="topbarHomeBtn" class="col btn co-title-wrap">
+                    <img class="co-title" src="{!URLFOR($Resource.nxl_frontend, '/img/nxl_title_sm.png')}"></img>
+                    <h6 class="co-title-desc font-sm font-bold">Entitlement Management</h6>
+                </div>
+                <div id="topbarSaveBtn" class="col btn topbar-btn-wrap">
+                    <i class="box save-icon"></i>
+                    <span class="topbar-btn-text font-md">Secure Selected Entities</span>
+                </div>
+                <i class="box sep-v hide"></i>
+                <div id="topbarDiscardBtn" class="col btn topbar-btn-wrap hide">
+                    <i class="box discard-icon"></i>
+                    <span class="topbar-btn-text font-md">Discard Changes</span>
+                </div>
+                <i class="box sep-v"></i>
+                <div id="topbarExportSaveBtn" class="col btn topbar-btn-wrap">
+                    <i class="box export-icon"></i>
+                    <span class="topbar-btn-text font-md">Export &#x26; Secure Selected Entities</span>
+                </div>
+            </div>
+        </div>
+        <div class="content-header">
+            <img class="box content-header-avatar" src="{!URLFOR($Resource.nxl_frontend, '/img/nxl_secure_entities.png')}"></img>
+            <div class="box content-title-wrap">
+                <h2 class="content-title font-bold">Secure Entities</h2>
+                <p class="content-title-desc font-md">Policy controller and other Entitlement Management settings</p>
+                <hr class="sep-title-h" />
+                <p class="content-title-info font-md">Users will only be able to access selected entities and records that they are authorized for based on the
+                    policies defined in the NextLabs CloudAz or Control Center console.</p>
+            </div>
+        </div>
+        <div class="content-body se-body">
+            <div class="section">
+                <div class="section-content section-toolbar">
+                    <div class="form-group-inline hide">
+                        <label for="scopeSelector" class="form-control-inline font-bold">Scope</label>
+                        <select id="scopeSelector" class="form-control-inline toolbar-select font-bold">
+                            <!-- mock data -->
+                            <!-- <option selected="true" value="Any">All Areas</option>
+                            <option value="Sales">Sales</option>
+                            <option value="global">Global</option>
+                            <option value="Service">Service</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Settings">Settings</option>
+                            <option value="Help">Help</option> -->
+                        </select>
+                    </div>
+                    <div class="form-group-inline">
+                        <label for="showSelector" class="form-control-inline font-md font-bold">Show</label>
+                        <select id="showSelector" class="form-control-inline font-bold toolbar-select">
+                            <option value="All Entities" selected="">All Entities</option>
+                            <option value="Secure Entities">Secured Entities</option>
+                            <option value="Not Secure Entities">Not Secured Entities</option>
+                        </select>
+                    </div>
+                    <div class="form-group-inline">
+                        <input id="searchBox" class="toolbar-search-box" type="text" />
+                        <button id="searchBtn" class="btn toolbar-search-btn">Search</button>
+                    </div>
+                </div>
+            </div>
+            <hr class="sep-title-h" />
+            <div class="section section-select-all">
+                <div class="form-group select-all-wrap">
+                    <input id="selectAllCheckbox" type="checkbox" class="checkbox hide" />
+                    <label for="selectAllCheckbox" class="box"></label>
+                    <label class="form-control-inline select-all font-bold font-lg">SELECT ALL</label>
+                </div>
+            </div>
+            <hr class="sep-title-h" />
+            <div class="section section-entity-list">
+                <ul id="entityList">
+                    <!-- mock data -->
+                    <!-- <li class="entity-card">
+                        <div class="box checkbox-wrap">
+                            <input id="account" type="checkbox" class="checkbox hide" />
+                            <label for="account" class="box checkbox-presenter"></label>
+                        </div>
+                        <div class="box entity-item-wrap">
+                            <div class="entity-title-wrap">
+                                <label class="form-control-inline font-bold font-lg">Accounts</label>
+                                <label class="form-control-inline font-bold font-md">(Service | Sales)</label>
+                            </div>
+                            <p class="entity-desc font-md">Business that represents a customer or potential customer. The company that is billed in business transactions.</p>
+                            <p class="show-fields-wrap"><a class="link font-md">Show Fields (<em class="font-blue">28</em>)</a></p>
+                            <div class="entity-table-wrap">
+                                <p class="attrs-desc font-md font-blue">Fields available for policy authoring and evaluation</p>
+                                <table class="entity-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="td-sm">
+                                                <input id="account-attr-all" type="checkbox" class="checkbox hide" />
+                                                <label for="account-attr-all" class="box"></label>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Display Name</span>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Name</span>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Data Type</span>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Required / Optional</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="td-sm">
+                                                <input id="new_ttttt" type="checkbox" class="checkbox hide" />
+                                                <label for="new_ttttt" class="box"></label>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="entity-display-name font-default font-md">?</span>
+                                                <span class="entity-display-name-info font-default" title="No Description"></span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">new_ttttt</span>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="font-default font-md">Single Line of Text</span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">Optional</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="td-sm">
+                                                <input id="accountid" type="checkbox" class="checkbox hide" />
+                                                <label for="accountid" class="box"></label>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="entity-display-name font-default font-md">Account</span>
+                                                <span class="entity-display-name-info font-default" title="Unique identifier of the account."></span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">accountid</span>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="font-default font-md">Primary Key</span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">Required</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="td-sm">
+                                                <input id="name" type="checkbox" class="checkbox hide" />
+                                                <label for="name" class="box"></label>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="entity-display-name font-default font-md">Account Name</span>
+                                                <span class="entity-display-name-info font-default" title="Type the company or business name."></span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">name</span>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="font-default font-md">Single Line of Text</span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">Required</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>                            
+                            </div>
+                        </div>
+                    </li>
+                    <hr class="sep-entity-h"/>
+                    <li class="entity-card">
+                        <div class="box checkbox-wrap">
+                            <input id="contact" type="checkbox" class="checkbox hide" />
+                            <label for="contact" class="box checkbox-presenter"></label>
+                        </div>
+                        <div class="box entity-item-wrap">
+                            <div class="entity-title-wrap">
+                                <label class="form-control-inline font-bold font-lg">Contacts</label>
+                                <label class="form-control-inline font-bold font-md">(Sales | Service | Marketing)</label>
+                            </div>
+                            <p class="entity-desc font-md">Person with whom a business unit has a relationship, such as customer, supplier, and colleague.</p>
+                            <div class="entity-table-wrap">
+                                <p class="show-fields-wrap"><a class="link font-md">Show Fields (<em class="font-blue">28</em>)</a></p>
+                                <p class="attrs-desc font-md font-blue">Fields available for policy authoring and evaluation</p>
+                                <table class="entity-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="td-sm">
+                                                <input id="account-attr-all" type="checkbox" class="checkbox hide" />
+                                                <label for="account-attr-all" class="box"></label>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Display Name</span>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Name</span>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Data Type</span>
+                                            </th>
+                                            <th class="td-lg">
+                                                <span class="font-bold font-md">Required / Optional</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="td-sm">
+                                                <input id="new_ttttt" type="checkbox" class="checkbox hide" />
+                                                <label for="new_ttttt" class="box"></label>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="entity-display-name font-default font-md">Account</span>
+                                                <span class="entity-display-name-info font-default" title="No Description"></span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">accountid</span>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="font-default font-md">Lookup</span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">Optional</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="td-sm">
+                                                <input id="accountid" type="checkbox" class="checkbox hide" />
+                                                <label for="accountid" class="box"></label>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="entity-display-name font-default font-md">Address 1</span>
+                                                <span class="entity-display-name-info font-default" title="Unique identifier of the account."></span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">address1_composite</span>
+                                            </td>
+                                            <td class="td-lg bg-gray-light">
+                                                <span class="font-default font-md">Multiple Lines of Text</span>
+                                            </td>
+                                            <td class="td-lg">
+                                                <span class="font-default font-md">Required</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>                            
+                            </div>
+                        </div>
+                    </li>              -->
+                </ul>
+            </div>
+        </div>
+        <div class="content-footer footer-toolbar-wrap">
+            <div class="footer-toolbar">
+                <button class="btn" id="bottomSaveBtn">Secure Selected Entities</button>
+                <button class="btn" id="bottomExportSaveBtn">Export &#x26; Secure Selected Entities</button>
+                <button class="btn" id="bottomUndeployBtn" style="width: 140px">Undeploy</button>
+            </div>
+        </div>
+        <div class="summary-container">
+            <div class="summary-header">
+                <h3 class="summary-title font-bold font-lg">Secured Entity
+                    <span class="summary-title-counter">(<em id="entityCounter">0</em>)</span>
+                </h3>
+            </div>
+            <div class="summary-toolbar">
+                <div class="box section-inline summary-toolwrap-inline hide">
+                    <i class="box btn expand-all-icon summary-icon"></i>
+                    <i class="box btn collapse-all-icon summary-icon"></i>
+                </div>
+                <i class="box sep-v hide"></i>
+                <div class="box section-inline summary-toolwrap-inline">
+                    <i id="summarySaveBtn" class="box btn save-icon summary-icon"></i>
+                    <i id="summaryExportSaveBtn" class="box btn export-icon summary-icon"></i>
+                    <i class="box btn import-icon summary-icon hide"></i>
+                </div>
+            </div>
+            <div class="summary-new-items">
+                <i class="font-red font-md font-italic">*New Items</i>
+            </div>
+            <div class="summary-content">
+                <ul id="summaryEntityList" class="summary-entity-list">
+                    <!-- mock data -->
+                    <!-- <li class="summary-entity-wrap">
+                        <div  class="entity-name-wrap">
+                            <i class="box attr-toggle-icon">-</i>
+                            <span class="summary-entity font-bold">Accounts ( <em>0</em> fields )</span>
+                            <a class="link font-sm summary-remove">Remove</a>
+                        </div>
+                        <ul class="grid summary-attrs-wrap">
+                            <li class="box summary-attr-wrap"><span class="font-red font-sm summary-attr">Account</span><i class="box attr-delete-icon"></i></li>
+                            <li class="box summary-attr-wrap"><span class="font-red font-sm summary-attr">CountactId</span><i class="box attr-delete-icon"></i></li>
+                        </ul>
+                    </li>
+                    <hr class="sep-summary-h"/>
+                    <li class="summary-entity-wrap">
+                        <div  class="entity-name-wrap">
+                            <i class="box attr-toggle-icon">-</i>
+                            <span class="summary-entity font-bold">Contact ( <em>0</em> fields )</span>
+                            <a class="link font-sm summary-remove">Remove</a>
+                        </div>
+                        <ul class="grid summary-attrs-wrap">
+                            <li class="box summary-attr-wrap"><span class="font-red font-sm summary-attr">Contact</span><i class="box attr-delete-icon"></i></li>
+                            <li class="box summary-attr-wrap"><span class="font-red font-sm summary-attr">OpportunityId</span><i class="box attr-delete-icon"></i></li>
+                        </ul>
+                    </li>               -->
+                </ul>
+            </div>
+        </div>
+        <div id="fieldSelectorModal" class="overlay hide">
+            <div class="modal modal-field-selector">
+                <div class="modal-header gray-down">
+                    <h4 class="modal-title font-bold">Reference Fields Selector</h4>
+                    <button class="btn modal-close hide">X</button>
+                </div>
+                <div class="modal-body modal-field-selector-body">
+                    <div id="treevieweWrap" class="treeview-wrap">
+                        <!--div class="tree-node">
+                            <div class="tree-node-content">
+                                <i class="box btn attr-toggle-icon" data-expand="false">+</i>
+                                <span class="table-name font-bold">Caller</span>                    
+                            </div>
+                            <div class="child-tree-node">
+                                <div class="tree-node-content">
+                                    <div class="box checkbox-sm-wrap">
+                                        <input id="user.name" type="checkbox" class="checkbox-sm hide" />
+                                        <label for="user.name" class="box"></label>
+                                    </div>
+                                    <span class="field-name">Name</span>
+                                </div>
+                                <div class="tree-node-content">
+                                    <div class="box checkbox-sm-wrap">
+                                        <input id="user.email" type="checkbox" class="checkbox-sm hide" />
+                                        <label for="user.email" class="box"></label>
+                                    </div>
+                                    <span class="field-name">Email</span>
+                                </div>                        
+                                <div class="tree-node">
+                                    <div class="tree-node-content">
+                                        <i class="box btn attr-toggle-icon" data-expand="false">+</i>
+                                        <span class="table-name font-bold">Department</span>                    
+                                    </div>
+                                    <div class="child-tree-node">
+                                        <div class="tree-node-content">
+                                            <div class="box checkbox-sm-wrap">
+                                                <input id="dept.name" type="checkbox" class="checkbox-sm hide" />
+                                                <label for="dept.name" class="box"></label>
+                                            </div>
+                                            <span class="field-name">Name</span>
+                                        </div>
+                                        <div class="tree-node-content">
+                                            <div class="box checkbox-sm-wrap">
+                                                <input id="dept.address" type="checkbox" class="checkbox-sm hide" />
+                                                <label for="dept.address" class="box"></label>
+                                            </div>
+                                            <span class="field-name">Address</span>
+                                        </div>                                                                
+                                    </div>
+                                </div>                        
+                            </div>
+                        </div-->
+                    </div>
+                </div>
+                <div class="modal-footer modal-toolbar gray-up">
+                    <button id="fieldSelectorCancelBtn" class="btn btn-default btn-sm font-md footer-btn-margin">Cancel</button>
+                    <button id="fieldSelectorConfirmBtn" class="btn btn-default btn-sm font-md footer-btn-margin">Confirm</button>
+                </div>
+            </div>
+        </div>
+        <div id="overlay" class="overlay hide">
+            <div class="modal">
+                <div class="modal-header gray-down">
+                    <h4 class="modal-title font-lg font-bold">Working on it...</h4>
+                    <button class="btn modal-close hide">X</button>
+                </div>
+                <div class="modal-body">
+                    <p id="displayMsg" class="modal-msg font-lg">
+                        Enabling NextLabs Entitlement Management for the selected SalesForce Entities. This may take a little while...
+                    </p>
+                    <p class="modal-progress-msg font-lg">
+                        <span>Processing Entity &nbsp;</span>
+                        <span id="currentIndex">1</span>
+                        <span>/</span>
+                        <span id="totalCount">0</span>
+                        <span>:&nbsp;</span>
+                        <span id="currentEntityName"></span>
+                    </p>
+                    <div class="bar-wrap">
+                        <div id="progressBar" class="bar"></div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-toolbar gray-up hide">
+                    <button id="export-cancel-btn" class="btn btn-default btn-sm btn-ms">Cancel</button>
+                    <button id="export-confirm-btn" class="btn btn-default btn-sm btn-ms">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        ; (function () {
+
+        var SECURE_ENTITY_TYPE = '280240000'
+        var CONNECT_APP_NAME = 'ConnectedApplication'
+        var TREEVIEW_ATTR_PREFIX = 'tree'
+        var TABLE_REF_PREFIX = 'ref'
+        var TREE_NODE_ID = 0
+        var ALL_ENTITIES = 'All Entities'
+        var SECURE_ENTITIES = 'Secure Entities'
+        var INSECURE_ENTITIES = 'Not Secure Entities'
+        var OVER_MAXSIZE_EXCEPT_MSG = 'Because of system limitation, you can not select too many attributes to secure. Please contact system support for further help.'    
+        var DEFAULT_EXCEPT_MSG = 'Access denied due to system error. Try again and contact the system administrator if the problem persists.'
+        var GS_EXCEPT_MSG = DEFAULT_EXCEPT_MSG
+        var MAX_PAYLOADS_SIZE = 30000    
+
+        var util = nxl.util
+        var $ = util.$
+        var $$ = util.$$
+        var _extend = util.extend
+        var createDOM = util.createDOMFromString
+
+        var insertAdjacentElementPositions = {
+            beforeCurrentElement: 'beforebegin',
+            beforeFirstChildOfCurrentElement: 'afterbegin',
+            afterLastChildOfCurrentElement: 'beforeend',
+            afterCurrentElement: 'afterend'
+        }
+
+        //#region - the data
+
+        var store = {
+            entityAttrFetchStatus: {},
+            entityEnforcer: {},
+            entityInfo: {},
+            attrInfo: {},
+            refAttrInfo: {},
+            attrEnforcer: {},
+            refAttrEnforcer: {},
+            triggerInfo: {},
+        }
+
+        /**
+         * element caches used to locate element by id/compositeId
+         * - entityCheckboxes caches entity-card-checkbox elements in entity list
+         * - summary caches summary-entity-card elements in summary entity list
+         */
+        var elementMaps = {
+            entityCheckboxes: {},
+            summary: {}
+        }
+
+        var elements = {
+            scopeSelector: $('#scopeSelector'),
+            showSelector: $('#showSelector'),
+            searchBox: $('#searchBox'),
+            searchBtn: $('#searchBtn'),
+            entityList: $('#entityList'),
+            summaryEntityListEl: $('#summaryEntityList'),
+            entityCounter: $('#entityCounter'),
+            topSaveBtn: $('#topbarSaveBtn'),
+            topExportSaveBtn: $('#topbarExportSaveBtn'),
+            bottomSaveBtn: $('#bottomSaveBtn'),
+            bottomExportSaveBtn: $('#bottomExportSaveBtn'),
+            summarySaveBtn: $('#summarySaveBtn'),
+            summaryExportSaveBtn: $('#summaryExportSaveBtn'),
+            selectAllCheckbox: $('#selectAllCheckbox'),
+            fieldCancelBtn: $('#fieldSelectorCancelBtn'),
+            fieldConfirmBtn: $('#fieldSelectorConfirmBtn'),
+            undeployBtn: $('#bottomUndeployBtn'),
+        }
+
+        //#endregion
+
+        //#region - services
+
+        var service = {
+
+            getTriggerInfos: function () {
+                return (
+                    Object.keys(store.triggerInfo).map(function (key) {
+                        return util.extend({}, store.triggerInfo[key])
+                    })
+                )
+            },
+
+            /**
+             * get entity from store tables
+             * @param {string} id
+             * @return {SE.ViewModel.Entity}
+             */
+            getEntityById: function (id) {
+                if (id == null) {
+                    return null
+                }
+
+                return _extend({}, store.entityInfo[id], store.entityEnforcer[id])
+            },
+
+            /**
+             * 
+             * @param {string} entityId 
+             * @return {SE.Tables.Enforcer}
+             */
+            getEntityEnforcementById: function (entityId) {
+                if (entityId == null) {
+                    return null
+                }
+
+                return _extend({}, store.entityEnforcer[entityId])
+            },
+
+            /**
+             * get attribute from store tables
+             * @param {string} compositeId
+             * @return {SE.ViewModel.Attribute}
+             */
+            getAttributeByCompositeId: function (compositeId) {
+                if (compositeId == null || compositeId.split(':').length < 2) {
+                    return null
+                }
+
+                return _extend(
+                    {},
+                    store.attrInfo[compositeId],
+                    store.attrEnforcer[compositeId]
+                )
+            },
+
+            getWillEnforcedAttributesByEntityId: function (entityId) {
+
+                var primitiveAttrs = service.getAttributesByEntityId(entityId).filter(function (attr) { return attr.willEnforced })
+                var refAttrs = service.getEnforcedRefAttributesByEntityId(entityId)
+                return primitiveAttrs.concat(refAttrs)
+            },
+
+            /**
+             * get attributes of an entity from store tables
+             * @param {string} id
+             * @return {SE.ViewModel.Attribute[]}
+             */
+            getAttributesByEntityId: function (id) {
+                if (id == null) {
+                    return []
+                }
+
+                var compositeIds = Object.keys(store.attrInfo)
+
+                return compositeIds
+                    .filter(function (compositeId) {
+                        var entityId = compositeId.split(':')[0]
+                        return entityId === id
+                    })
+                    .map(function (compositeId) {
+                        return _extend(
+                            {},
+                            store.attrInfo[compositeId],
+                            store.attrEnforcer[compositeId]
+                        )
+                    })
+            },
+
+            /**
+             * get entities from table
+             * @return {NXL_Entity[]}
+             */
+            getAllEntities: function () {
+                return Object.keys(store.entityInfo).map(function (entityId) {
+                    return service.getEntityById(entityId)
+                })
+            },
+
+            /**
+             * @return {SE.ViewModel.Entity[]}
+             */
+            getWillEnforcedEntities: function () {
+                return Object.keys(store.entityEnforcer)
+                    .filter(function (entityId) {
+                        return store.entityEnforcer[entityId].willEnforced
+                    })
+                    .map(function (entityId) {
+                        return _extend(
+                            {},
+                            store.entityEnforcer[entityId],
+                            store.entityInfo[entityId]
+                        )
+                    })
+            },
+
+            /**
+             * @return {SE.ViewModel.Entity[]}
+             */
+
+            getWillUnEnforcedEntities: function () {
+                return Object.keys(store.entityEnforcer)
+                    .filter(function (entityId) {
+                        return (
+                            !store.entityEnforcer[entityId].willEnforced &&
+                            store.entityEnforcer[entityId].enforced
+                        )
+                    })
+                    .map(function (entityId) {
+                        return _extend(
+                            {},
+                            store.entityEnforcer[entityId],
+                            store.entityInfo[entityId]
+                        )
+                    })
+            },
+
+            /**
+             * @return {SE.ViewModel.Entity[]}
+             */
+            getEnforcedEntities: function () {
+                return Object.keys(store.entityEnforcer)
+                    .filter(function (entityId) {
+                        return store.entityEnforcer[entityId].enforced
+                    })
+                    .map(function (entityId) {
+                        return _extend(
+                            {},
+                            store.entityEnforcer[entityId],
+                            store.entityInfo[entityId]
+                        )
+                    })
+            },
+
+            /**
+             * @param {string} entityId
+             * @return {SE.Tables.FetchStatus}
+             */
+            getEntityAttrFetchStatus: function (entityId) {
+                return _extend({}, store.entityAttrFetchStatus[entityId])
+            },
+
+            /**
+                 * @param {string} compositeId
+                 * @return {SE.ViewModel.Attribute}
+                 */
+            getEnforcedRefAttributeByCompositeId: function (compositeId) {
+                if (compositeId == null) {
+                    return null
+                }
+
+                var enforcer = store.refAttrEnforcer[compositeId]
+                var isEnforced = (enforcer && enforcer.enforced)
+                var willEnforced = (enforcer && enforcer.willEnforced)
+
+                if (willEnforced) {
+                    return _extend({}, store.refAttrInfo[compositeId], { enforced: isEnforced, willEnforced: willEnforced })
+                } else {
+                    return null
+                }
+            },
+
+            /**
+             * @param {string} entityId
+             * @return {SE.ViewModel.Attribute[]}
+             */
+            getAllRefAttributesByCompositeId: function (id) {
+
+                if (id == null) {
+                    return []
+                }
+
+                var compositeIds = Object.keys(store.refAttrInfo)
+                return compositeIds.filter(function (compositeId) {
+                    var entityAttrId = compositeId.split('.')[0]
+                    return entityAttrId === id
+                }).map(function (compositeId) {
+
+                    var enforced = (store.refAttrEnforcer[compositeId] && !!store.refAttrEnforcer[compositeId].enforced)
+                    var willEnforced = (store.refAttrEnforcer[compositeId] && !!store.refAttrEnforcer[compositeId].willEnforced)
+
+                    return _extend({}, store.refAttrInfo[compositeId], { enforced: enforced, willEnforced: willEnforced })
+                })
+            },
+
+            /**
+             * @param {string} entityId
+             * @return {SE.ViewModel.Attribute[]}
+             */
+            getEnforcedRefAttributesByCompositeId: function (id) {
+
+                if (id == null) {
+                    return []
+                }
+
+                var compositeIds = Object.keys(store.refAttrInfo)
+                return compositeIds.filter(function (compositeId) {
+                    var entityAttrId = compositeId.split('.')[0]
+                    return entityAttrId === id && !!store.refAttrEnforcer[compositeId].willEnforced
+                }).map(function (compositeId) {
+                    return _extend({}, store.refAttrInfo[compositeId], { enforced: !!store.refAttrEnforcer[compositeId].enforced, willEnforced: !!store.refAttrEnforcer[compositeId].willEnforced })
+                })
+            },
+
+            /**
+             * @param {string} entityId
+             * @return {SE.ViewModel.Attribute[]}
+             */
+            getEnforcedRefAttributesByEntityId: function (entityId) {
+
+                if (entityId == null) {
+                    return []
+                }
+
+                var compositeIds = Object.keys(store.refAttrInfo)
+                return compositeIds.filter(function (compositeId) {
+                    var id = compositeId.split(':')[0]
+                    return entityId === id && !!store.refAttrEnforcer[compositeId].willEnforced
+                }).map(function (compositeId) {
+                    return _extend({}, store.refAttrInfo[compositeId], { enforced: !!store.refAttrEnforcer[compositeId].enforced, willEnforced: !!store.refAttrEnforcer[compositeId].willEnforced })
+                })
+            },
+
+            /**
+             * @param {string} refAttrId
+             * @return {SE.ViewModel.Attribute[]}
+             */
+            getEnforcedRefAttributesByRefAttributeId: function (refAttrId) {
+
+                if (refAttrId == null) {
+                    return null
+                }
+
+                var compositeIds = Object.keys(store.refAttrInfo)
+                return compositeIds.filter(function (compositeId) {
+
+                    var curAttrId = compositeId.split(':')[1]
+                    var curRefAttrId = curAttrId ? curAttrId.split('.')[0] : ''
+                    return refAttrId === curRefAttrId
+                }).map(function (compositeId) {
+                    return _extend({}, store.refAttrInfo[compositeId], { enforced: true, willEnforced: true })
+                })
+            },
+
+            /**
+             * set entity enforcement by id
+             * @param {string} entityId
+             * @param {boolean} enforce
+             */
+            setEntityEnforcement: function (entityId, enforce) {
+                var entityEnforcer = store.entityEnforcer[entityId]
+
+                if (entityEnforcer) {
+                    entityEnforcer.willEnforced = !!enforce
+                } else {
+                    entityEnforcerHydrator(entityId, !!enforce)
+                }
+            },
+
+            /**
+             * set attribute enforcement by compositeId
+             * @param {string} compositeId
+             * @param {boolean} enforce
+             */
+            setAttributeEnforcement: function (compositeId, enforce) {
+                var attrEnforcer = store.attrEnforcer[compositeId]
+
+                if (attrEnforcer) {
+                    attrEnforcer.willEnforced = !!enforce
+                }
+                else {
+                    attrEnforcerHydrator(compositeId, !!enforce)
+                }
+            },
+
+            /**
+             * @param {string} compositeId
+             * @param {boolean} enforce
+             */
+            setRefAttributeEnforcement: function (compositeId, enforce) {
+
+                var refAttrEnforcer = store.refAttrEnforcer[compositeId]
+                if (refAttrEnforcer) {
+                    refAttrEnforcer.willEnforced = enforce
+                }
+                else {
+                    refAttrEnforcerHydrator(compositeId, enforce)
+                }
+            },
+
+            /**
+             * @param {string} id
+             * @param {boolean} enforce
+             */
+            setBatchRefAttributeEnforcementById: function (id, enforce) {
+
+                if (id == null) {
+                    console.log(util.format('setBatchRefAttributeEnforcementById failed, compositeId: {0}', id))
+                    return
+                }
+
+                var compositeIds = Object.keys(store.refAttrEnforcer)
+                compositeIds.filter(function (compositeId) {
+                    var entityAttrId = compositeId.split('.')[0]
+                    return entityAttrId === id
+                }).forEach(function (compositeId) {
+
+                    var enfocer = store.refAttrEnforcer[compositeId]
+                    if (enforce) {
+                        enforce.willEnforced = enforce
+                    }
+                    else {
+                        refAttrEnforcerHydrator(compositeId, enforce)
+                    }
+                })
+            },
+
+            setEntityAttrFetchStatus: function (entityId, isFetched) {
+
+                var fetchStatus = store.entityAttrFetchStatus[entityId]
+
+                if (fetchStatus) {
+                    fetchStatus.isFetched = isFetched
+                }
+                else {
+                    entityAttrFetchStatusHydrator(entityId, isFetched)
+                }
+            }
+        }
+
+        //endregion
+
+        //#region - components
+        var uploader = {
+            el: $('#overlay'),
+            bar: $('#progressBar'),
+            current: 1,
+            total: 0,
+            show: function () {
+                this.el.classList.remove('hide')
+            },
+            hide: function () {
+                this.el.classList.add('hide')
+            },
+            setCurrentEntityName: function (name) {
+                var nameEl = $('#currentEntityName')
+
+                if (nameEl) {
+                    nameEl.textContent = name
+                } else {
+                    console.log('uploader -> setCurrentEntityName failed. element currentEntityName not found.')
+                }
+            },
+            setCurrentIndex: function (index) {
+                var curIndexEl = $('#currentIndex')
+
+                if (curIndexEl) {
+                    uploader.current = index
+                    curIndexEl.textContent = index
+                    uploader.bar.style.width = util.format(
+                        '{0}%',
+                        uploader.current / uploader.total * 100
+                    )
+                } else {
+                    console.log('uploadModal -> setCurrentIndex failed. element currentIndex not found.')
+                }
+            },
+            setTotal: function (total) {
+                var totalEl = $('#totalCount')
+                if (totalEl) {
+                    uploader.total = total
+                    totalEl.textContent = total
+                } else {
+                    console.log('uploadModal -> setCurrentIndex failed. element totalCount not found.')
+                }
+            }
+        }
+        var treeviewSelector = {
+            el: $('#fieldSelectorModal'),
+            wrap: $('#treevieweWrap'),
+            show: function () {
+                this.el.classList.remove('hide')
+            },
+            hide: function () {
+                this.el.classList.add('hide')
+            },
+            clear: function () {
+                this.wrap.textContent = ''
+            }
+        }
+            //#endregion
+
+            //#region - entry point
+            ; (function init() {
+                initListeners()
+                initUI()
+            })()
+
+        function initListeners() {
+
+            elements.searchBtn.onclick = searchHandler.bind(this)
+            elements.topSaveBtn.onclick = saveHandler.bind(this)
+            elements.topExportSaveBtn.onclick = exportAndSaveHandler.bind(this)
+            elements.bottomSaveBtn.onclick = saveHandler.bind(this)
+            elements.bottomExportSaveBtn.onclick = exportAndSaveHandler.bind(this)
+            elements.summarySaveBtn.onclick = saveHandler.bind(this)
+            elements.summaryExportSaveBtn.onclick = exportAndSaveHandler.bind(this)
+            elements.selectAllCheckbox.onclick = selectAllEntitiesHandler.bind(this)
+            elements.showSelector.onchange = showDropdownHandler.bind(this)
+            elements.fieldConfirmBtn.onclick = fieldSelectorConfirmHandler.bind(this)
+            elements.fieldCancelBtn.onclick = treeviewSelector.hide.bind(treeviewSelector)
+            elements.undeployBtn.onclick = function () {
+
+                Object.keys(store.entityEnforcer).forEach(function (key) {
+                    service.setEntityEnforcement(key, false)
+                })
+
+                saveHandler()
+            }
+
+            elements.searchBox.addEventListener('keyup', function (e) {
+
+                var key = e.key
+
+                if (key === 'Enter') {
+                    searchHandler(e)
+                }
+
+            }, false)
+        }
+
+        function initUI() {
+
+            getGSData()
+                .then(function (res) {
+                    if (res && res.policymsg) {
+                        GS_EXCEPT_MSG = res.policymsg
+                    }
+                })
+                .then(fetchEntityList)
+                .then(function (entityIds) {
+                    if (!Array.isArray(entityIds)) {
+                        console.log(util.format('initUI failed, invalid entityIds: {0}', entityIds))
+                        return Promise.reject(new Error(GS_EXCEPT_MSG))
+                    } else {
+                        return Promise.resolve(entityIds.sort())
+                    }
+                })
+                .then(function (entityIds) {
+                    return fetchEnforcedInfos()
+                        .then(function () {
+
+                            clearSummaryEntityList()
+                            setEntityCount()
+
+                            var entities = []
+                            entities = entityIds.map(function (id) {
+                                return service.getEntityById(id)
+                            })
+
+                            renderEntityList(entities)
+                            renderSummaryEntityList()
+                        })
+                        .catch(UIErrorHandler)
+                })
+                .catch(UIErrorHandler)
+        }
+
+        //#endregion
+
+        //#region - promisify javascript remoting
+
+        function fetchEntityList() {
+
+            var action = '{!$RemoteAction.NxlSettingsController.GetEntitiesMetadata}'
+            var config = { escape: false }
+
+            return new Promise(function (resolve, reject) {
+
+                Visualforce.remoting.Manager.invokeAction(action, function (result, event) {
+
+                    if (event.status) {
+
+                        var payload = JSON.parse(result)
+
+                        /**
+                         * @type {SE.APIModel.NxlMetaEntity[]}
+                         */
+                        var models = payload.response
+                        var status = payload.status
+
+                        if (status === 200 && Array.isArray(models)) {
+
+                            var entityIds = []
+
+                            models.forEach(function (model) {
+
+                                var id = model.id
+
+                                entityIds.push(id)
+                                metaEntityHydrator(model)
+                                entityEnforcerHydrator(id, false)
+                                entityAttrFetchStatusHydrator(id, false)
+                            })
+
+                            return resolve(entityIds)
+                        }
+                        else {
+                            console.log(util.format('fetchEntity failed, records: {0}', models))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    } else {
+                        console.log(util.format('fetchEntityList failed, msg: {0}', event.message))
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+                }, config)
+            })
+        }
+
+        function fetchEntityMetadata(entityId) {
+
+            var action = '{!$RemoteAction.NxlSettingsController.GetEntityMetadata}'
+            var config = { escape: false }
+
+            return new Promise(function (resolve, reject) {
+                Visualforce.remoting.Manager.invokeAction(action, entityId, function (result, event) {
+
+                    if (event.status) {
+
+                        var payload = JSON.parse(result)
+
+                        /**
+                         * @type {SE.APIModel.NxlMetaEntity[]}
+                         */
+                        var entity = payload.response
+                        var status = payload.status
+
+                        if (status === 200 && entity) {
+
+                            var id = entity.id
+
+                            metaEntityHydrator(entity)
+                            entityEnforcerHydrator(id, false)
+
+                            resolve(id)
+                        }
+                        else {
+                            console.log(util.format('fetchEntityMetadata failed, records: {0}', models))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    } else {
+                        util.format('fetchEntityMetadata failed, msg: {0}', event.message)
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+                }, config)
+            })
+        }
+
+        /**
+         * @deprecated
+         * @param {string} entityId
+         * @return {Promise}
+         */
+        function fetchAttribute(entityId) {
+
+            var action = '{!$RemoteAction.NxlSettingsController.GetEntityMetaAttributes}'
+            var config = { escape: false }
+
+            return new Promise(function (resolve, reject) {
+
+                Visualforce.remoting.Manager.invokeAction(action, entityId, function (result, event) {
+
+                    if (event.status) {
+
+                        var payload = JSON.parse(result)
+                        var models = payload.response
+                        var status = payload.status
+
+                        if (status === 200 && Array.isArray(models)) {
+                            models.forEach(function (model) {
+                                metaAttributeHydrator(model, entityId)
+                            })
+                            resolve(entityId)
+                        } else {
+                            console.log(util.format('fetchAttribute failed, status: {0}, response: {1}', status, models))
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    } else {
+                        console.log(util.format('fetchAttribute failed, msg: {0}', event.message))
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+
+                }, config)
+
+            })
+        }
+
+        function fetchEnforcedInfos() {
+
+            var action = '{!$RemoteAction.NxlSettingsController.GetEnforcedEntities}'
+            var config = { escape: false }
+
+            return new Promise(function (resolve, reject) {
+
+                Visualforce.remoting.Manager.invokeAction(action, function (result, event) {
+
+                    var payload = JSON.parse(result)
+                    var models = payload.response
+                    var status = payload.status
+
+                    if (status === 200 && Array.isArray(models)) {
+
+                        models.forEach(function (model) {
+
+                            metaEntityHydrator(model)
+                            entityEnforcerHydrator(model.id, true)
+
+                            var attrs = model.attributes
+
+                            if (Array.isArray(attrs) && attrs.length) {
+                                attrs.forEach(function (attr) {
+
+                                    var compositeId = util.format('{0}:{1}', model.id, attr.id)
+
+                                    if (attr.isRef) {
+                                        refAttributeHydrator(attr, model.id)
+                                        refAttrEnforcerHydrator(compositeId, true)
+                                    } else {
+                                        metaAttributeHydrator(attr, model.id)
+                                        attrEnforcerHydrator(compositeId, true)
+                                    }
+                                })
+                            }
+                        })
+
+                        return resolve()
+
+                    } else {
+                        console.log(util.format('fetchEnforcedInfos failed, msg: {0}', event.message))
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+
+                }, config)
+            })
+        }
+
+        /**
+         * 
+         * @param {SE.ViewModel.Entity} entity 
+         * @return {Promise}
+         */
+        function postEntity(entity) {
+
+            var action = '{!$RemoteAction.NxlSettingsController.SaveEntity}'
+            var config = { escape: false }
+            var model = entityDehydrator(entity)
+
+            var data = {
+                name: entity.name,
+                enabled: entity.willEnforced,
+                type: SECURE_ENTITY_TYPE,
+                content: JSON.stringify(model)
+            }
+
+            return new Promise(function (resolve, reject) {
+
+                if(data.content.length > MAX_PAYLOADS_SIZE) {
+                    return reject(new Error(OVER_MAXSIZE_EXCEPT_MSG))
+                }
+
+                Visualforce.remoting.Manager.invokeAction(action, data.name, data.enabled, data.type, data.content, function (result, event) {
+                    if (event.status) {
+
+                        try {
+
+                            var res = JSON.parse(result)
+
+                            if (res.error || res.status !== 200) {
+                                console.log(util.format('postEntity failed, msg: {0}', res.error))
+                                reject(new Error(GS_EXCEPT_MSG))
+                            } else {
+                                resolve(res.response)
+                            }
+                        } catch (e) {
+                            reject(e)
+                        }
+
+                    } else {
+                        console.log(event.message)
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+                }, config)
+            })
+        }
+
+        function removeNxlTriggers() {
+
+            var action = '{!$RemoteAction.NxlSettingsController.DeleteAllNxlTriggers}'
+            var config = { escape: false }
+
+            return new Promise(function (resolve, reject) {
+
+                Visualforce.remoting.Manager.invokeAction(action, function (result, event) {
+
+                    if (event.status) {
+
+                        var payload = JSON.parse(result)
+                        var result = payload.response
+                        var status = payload.status
+
+                        if (status === 200 && result === 'OK') {
+                            resolve()
+                        } else {
+                            console.log(payload.error)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    } else {
+                        console.log(util.format('removeNxlTriggers failed, msg: {0}', event.message))
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+                }, config)
+            })
+        }
+
+        function createNxlTrigger(entityName) {
+
+            var action = '{!$RemoteAction.NxlSettingsController.CreateTrigger}'
+            var config = { escape: false }
+
+            return new Promise(function (resolve, reject) {
+
+                if (!entityName) {
+                    console.log(util.format('invalid entity name: {0}', entityName))
+                    return reject(new Error(GS_EXCEPT_MSG))
+                }
+
+                if(entityName === CONNECT_APP_NAME) {
+                    return resolve()
+                }
+
+                Visualforce.remoting.Manager.invokeAction(action, entityName, function (result, event) {
+
+                    if (event.status) {
+
+                        var payload = JSON.parse(result)
+                        var result = payload.response
+                        var status = payload.status
+
+                        if (status === 200 && result === 'OK') {
+                            resolve()
+                        } else {
+                            console.log(payload.error)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+
+                    } else {
+                        console.log(util.format('createNxlTrigger failed, msg: {0}', event.message))
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+                }, config)
+            })
+        }
+
+        /**
+         * create trigger one by one - if triggers are created in parallel, server will return bad request error
+         * @param {string[]} entityNames
+         */
+        function createTriggersInSequence(entityNames) {
+            return new Promise(function (resolve, reject) {
+
+                var curIndex = 0
+                var curEntity = entityNames[curIndex]
+
+                var triggerCreateHandler = function () {
+
+                    curIndex++
+                    curEntity = entityNames[curIndex]
+
+                    if (curIndex >= entityNames.length && !curEntity) {
+                        resolve()
+                    } else {
+                        createNxlTrigger(curEntity)
+                            .then(triggerCreateHandler)
+                            .catch(function (e) {
+                                console.log(e)
+                                reject(new Error(GS_EXCEPT_MSG))
+                            })
+                    }
+                }
+
+                if (Array.isArray(entityNames) && entityNames.length) {
+                    createNxlTrigger(curEntity)
+                        .then(triggerCreateHandler)
+                        .catch(function (err) {
+                            console.log(err)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        })
+                } else {
+                    resolve()
+                }
+            })
+        }
+
+        /**
+         * get general setting data
+         * @return {object} - the general setting data structure defined in restful api 
+         */
+        function getGSData() {
+            var resource = '{!$RemoteAction.NxlSettingsController.GetGeneralSettings}'
+            return fetchData(resource)
+        }
+
+        function fetchData(resource) {
+            return new Promise(function (resolve, reject) {
+
+                var config = { escape: false }
+
+                Visualforce.remoting.Manager.invokeAction(resource, function (result, event) {
+                    if (event.status) {
+                        try {
+                            var res = JSON.parse(result)
+                            if (res.error || res.status !== 200) {
+                                console.log(util.format('fetchData failed, msg: {0}', res.error))
+                                reject(new Error(GS_EXCEPT_MSG))
+                            } else {
+                                resolve(JSON.parse(res.response))
+                            }
+                        } catch (e) {
+                            console.log(e)
+                            reject(new Error(GS_EXCEPT_MSG))
+                        }
+                    } else {
+                        console.log(event.message)
+                        reject(new Error(GS_EXCEPT_MSG))
+                    }
+                }, config)
+            })
+        }
+
+        function UIErrorHandler(e) {
+            console.log(e)
+            alert(e.message)
+        }
+
+        function postData(entity) {
+            return new Promise(function (resolve, reject) {
+
+                var reqs = [postEntity(entity)]
+
+                if(entity.willEnforced) {
+                    reqs.push(createNxlTrigger(entity.name))
+                }
+
+                Promise.all(reqs)
+                    .then(function () { resolve() })
+                    .catch(function (err) { reject(err) })
+            })
+        }
+        //#endregion
+
+        //#region - event handlers
+        function homeHandler(e) {
+
+        }
+
+        function saveHandler(e) {
+
+            var entitiesTobeEnforced = service.getWillEnforcedEntities()
+            var entitiesTobeCancelled = service.getWillUnEnforcedEntities()
+            var entities = entitiesTobeEnforced.concat(entitiesTobeCancelled)
+            var curIndex = 0
+            var curEntity = entities[curIndex]
+            var len = entities.length
+
+            if (len === 0) {
+                return
+            }
+
+            if (curEntity) {
+
+                uploader.setTotal(len)
+                uploader.setCurrentIndex(curIndex + 1)
+                uploader.setCurrentEntityName(curEntity.displayName)
+                uploader.show()
+
+                var postSuccessHandler = function () {
+                    curIndex++
+                    curEntity = entities[curIndex]
+
+                    if (curEntity) {
+
+                        uploader.setCurrentEntityName(curEntity.displayName)
+                        uploader.setCurrentIndex(curIndex + 1)
+
+                        return (
+                            postData(curEntity)
+                                .then(postSuccessHandler)
+                                .catch(function(err){
+                                    UIErrorHandler(err)
+                                    uploader.hide()
+                                })
+                        )
+                    }
+                }
+
+                removeNxlTriggers()
+                    .then(function () { return postData(curEntity).then(postSuccessHandler) })
+                    //.then(function () { return createTriggersInSequence(entitiesTobeEnforced.map(function (e) { return e.name }).filter(function (entityName) { return entityName !== CONNECT_APP_NAME })) })
+                    .then(function () { util.reloadPage() })
+                    .catch(function(err){
+                        UIErrorHandler(err)
+                        uploader.hide()
+                    })
+            }
+        }
+
+        function exportAndSaveHandler(e) {
+
+            var entitiesTobeEnforced = service.getWillEnforcedEntities()
+            var pmEntities = entitiesTobeEnforced.map(function (entity) {
+
+                var attrs = service.getWillEnforcedAttributesByEntityId(entity.name)
+
+                return _extend({}, entity, { attributes: attrs })
+            })
+
+            var policy = util.getPolicyModel(pmEntities)
+
+            util.download(JSON.stringify(policy), util.format('{0}_{1}.bin', 'NextLabs_SalesForce_PolicyModel', Date.now()))
+
+            var saveEvt = util.createEvent('click')
+            elements.topSaveBtn.dispatchEvent(saveEvt)
+        }
+
+        function showDropdownHandler(e) {
+            searchHandler(null)
+        }
+
+        function searchHandler(e, words) {
+
+            if (elements.searchBox) {
+
+                var keywords = words == null ? elements.searchBox.value.toLowerCase() : words
+                var els = $$('.entity-card', elements.entityList)
+
+                if (els && els.length) {
+
+                    var cards = Array.prototype.slice.call(els)
+
+                    cards.forEach(function (card) {
+
+                        var checkbox = $('input[type=checkbox]', card)
+                        var entityId = checkbox && checkbox.id
+                        var entity = service.getEntityById(entityId)
+
+                        if (shouldFiltered(entity, keywords, elements.showSelector.value)) {
+                            card.classList.add('entity-collapse')
+                            card.nextElementSibling.classList.add('entity-collapse')
+                        } else {
+                            card.classList.remove('entity-collapse')
+                            card.nextElementSibling.classList.remove('entity-collapse')
+                        }
+                    })
+
+                } else {
+                    console.log('searchHandler failed, entity cards not found')
+                }
+            } else {
+                console.log('searchHandler failed, searchbox element not found')
+            }
+        }
+
+        function removeEntityHandler(e) {
+            var el = e.target
+            var entityId = el && e.target.getAttribute('data-id')
+
+            if (entityId) {
+                var checkbox = elementMaps.entityCheckboxes[entityId]
+                if (checkbox) {
+                    var evt = util.createEvent('click')
+                    checkbox.dispatchEvent(evt)
+                } else {
+                    console.log(util.format(
+                        'checkbox of {0} not found.unenforce {1} manually.',
+                        entityId,
+                        entityId))
+                    service.setEntityEnforcement(entityId, false)
+                    removeEntityFromSummary(entityId)
+                    setEntityCount()
+                }
+            } else {
+                console.log('removeEntityHandler failed, entityId not found not attribute["data-id"]')
+            }
+        }
+
+        function removeAttrHandler(e) {
+
+            var el = e.target
+            var liEl = el && el.parentElement
+            var ulEl = liEl && liEl.parentElement
+            var isRefAttr = !!el.getAttribute('data-is-ref-attr')
+            var compositeId = el && el.getAttribute('data-id')
+
+            if (compositeId && compositeId.split(':').length === 2) {
+
+                var entityId = compositeId.split(':')[0]
+                var checkbox = $(util.format('input[id="{0}"]', compositeId))
+
+                if (checkbox) {
+
+                    //trigger attribute checkbox recheck
+                    var evt = util.createEvent('click')
+                    checkbox.dispatchEvent(evt)
+                }
+                else {
+
+                    console.log(util.format('checkbox of {0} not found. remove attribute manually.', compositeId))
+                    var entityCheckbox = elementMaps.entityCheckboxes[entityId]
+
+                    if (isRefAttr) {
+                        console.log(util.format('remove ref attribute {0} manually', compositeId))
+                        service.setRefAttributeEnforcement(compositeId, false)
+                        updateRefAttrTableCell(compositeId.split('.')[0])
+                    } else {
+                        service.setAttributeEnforcement(compositeId, false)
+                    }
+
+                    if (entityCheckbox) {
+                        entityCheckbox.checked = false
+                        var entityEvt = util.createEvent('click')
+                        entityCheckbox.dispatchEvent(entityEvt)
+                    }
+                    else {
+                        console.log(util.format('removeAttrHandler failed, checkbox of entity: {0} not found. Remove attr manually', entityId))
+
+                        if (ulEl) {
+                            ulEl.removeChild(liEl)
+                        } else {
+                            console.log(util.format('removeAttrHandler failed, remove {0} attr manually failed, ul not found', entityId))
+                        }
+                    }
+                }
+            }
+        }
+
+        function removeAllAttrsHandler(e) {
+
+        }
+
+        function selectAllEntitiesHandler(e) {
+
+            if (e.target && e.target.type.trim().toLowerCase() === 'checkbox') {
+
+                var isEnforced = e.target.checked
+
+                var checkboxEls = Object.keys(elementMaps.entityCheckboxes).map(function (entityId) {
+                    return elementMaps.entityCheckboxes[entityId]
+                })
+
+                checkboxEls.forEach(function (el) {
+                    if (el && el.checked !== isEnforced) {
+                        var evt = util.createEvent('click')
+                        el.dispatchEvent(evt)
+                    }
+                })
+            }
+        }
+
+        function entityCheckHandler(e) {
+            if (
+                elements.summaryEntityListEl &&
+                e &&
+                e.target &&
+                e.target.type === 'checkbox'
+            ) {
+                var inputEl = e.target
+                var entityId = inputEl.id
+                var ischecked = inputEl.checked
+
+                service.setEntityEnforcement(entityId, ischecked)
+                setEntityCount()
+
+                if (ischecked) {
+                    removeEntityFromSummary(entityId)
+                    addEntityToSummary(entityId)
+                } else {
+                    removeEntityFromSummary(entityId)
+                }
+            }
+        }
+
+        function attrCheckHandler(e) {
+            if (e.target && e.target.type === 'checkbox') {
+
+                var inputEl = e.target
+                var tdEl = inputEl.parentElement
+                var unfoldEl = $('.unfolder-wrap', tdEl)
+                var compositeId = inputEl.id
+                var entityId = compositeId.split(':')[0]
+                var attr = service.getAttributeByCompositeId(compositeId)
+                var entityCheckbox = elementMaps.entityCheckboxes[entityId]
+
+                if (attr) {
+
+                    if (attr.datatype && attr.datatype.toLowerCase() === 'reference' && !attr.willEnforced) {
+
+                        if (inputEl.checked) {
+                            inputEl.checked = false
+                            treeviewSelector.wrap.setAttribute('data-id', util.format('{0}:{1}', TABLE_REF_PREFIX, entityId))
+                            treeviewSelector.wrap.setAttribute('data-ref-attr', util.format('{0}:{1}', TABLE_REF_PREFIX, compositeId))
+                            referenceAttrCheckHandler(attr)
+                        } else {
+                            //unenforce all enforced referenc attribuets
+                            service.setBatchRefAttributeEnforcementById(compositeId, false)
+                            updateRefAttrTableCell(compositeId)
+                            unfoldEl.classList.add('hide')
+                            entityCheckbox.checked = false
+                            var evt = util.createEvent('click')
+                            entityCheckbox.dispatchEvent(evt)
+                        }
+                    } else {
+                        service.setAttributeEnforcement(compositeId, inputEl.checked)
+                        entityCheckbox.checked = false
+
+                        var evt = util.createEvent('click')
+                        entityCheckbox.dispatchEvent(evt)
+                    }
+                }
+                else {
+                    console.log(util.format('attrCheckHandler failed, entity: {0}, compositeId: {1}', entityId, compositeId))
+                }
+            }
+        }
+
+        /**
+         * 
+         * @param {SE.ViewModel.Attribute} attr 
+         */
+        function referenceAttrCheckHandler(attr) {
+
+            if (!attr) {
+                console.log('referenceAttrCheckHandler failed, invalid attribute')
+                return
+            }
+
+            treeviewSelector.clear()
+            if (treeviewSelector.wrap) {
+
+                var entityId = attr.refTable
+                var entity = service.getEntityById(entityId)
+                if (entity.name) {
+                    treeviewSelector.wrap.appendChild(renderTableNode(entity.id, attr.name, attr.displayName))
+                }
+                else {
+                    fetchEntityMetadata(entityId)
+                        .then(function (fetchedEntityId) {
+                            entity = service.getEntityById(fetchedEntityId)
+                            treeviewSelector.wrap.appendChild(renderTableNode(entity.id, attr.name, attr.displayName))
+                        })
+                        .catch(UIErrorHandler)
+                }
+
+                treeviewSelector.show()
+            }
+            else {
+                console.log(util.format('referenceAttrCheckHandler failed, treeview wrap element not found'))
+            }
+        }
+
+        function toggleAttrsHandler(e) {
+            var toggleBtn = e.currentTarget
+            var entityId = toggleBtn.getAttribute('data-id')
+            var isExpand =
+                toggleBtn.getAttribute('data-expand') === 'true' ? true : false
+            var tableWrap = toggleBtn.nextElementSibling
+            var anchor = $('a', toggleBtn)
+
+            if (tableWrap && anchor) {
+                toggleBtn.setAttribute('data-expand', (!isExpand).toString())
+
+                if (isExpand) {
+                    tableWrap.classList.add('hide')
+                    anchor.textContent = 'Show Fields'
+                } else {
+                    tableWrap.classList.remove('hide')
+                    anchor.textContent = 'Hide Fields'
+
+                    var renderTable = function () {
+                        //first remove old the table.
+                        var curNode = tableWrap.firstElementChild
+
+                        while (curNode) {
+                            if (curNode.nodeName === 'TABLE') {
+                                tableWrap.removeChild(curNode)
+                            }
+                            curNode = curNode.nextElementSibling
+                        }
+
+                        var attrs = service.getAttributesByEntityId(entityId)
+                        tableWrap.appendChild(renderAttrTable(attrs, entityId))
+                    }
+
+                    var attrFetchStatus = service.getEntityAttrFetchStatus(entityId)
+
+                    if (!attrFetchStatus.isFetched) {
+                        fetchAttribute(entityId)
+                            .then(function () {
+                                service.setEntityAttrFetchStatus(entityId, true)
+                                renderTable()
+                            })
+                            .catch(UIErrorHandler)
+                    } else {
+                        renderTable()
+                    }
+                }
+            } else {
+                console.log('toggleAttrsHandler failed. table wrap not found')
+            }
+        }
+
+        function selectAllAttrHandler(e) {
+
+            if (e.target && e.target.type && e.target.type.trim().toLowerCase() === 'checkbox') {
+
+                var el = e.target
+                var tableBodyEl = el.parentElement.parentElement.parentElement.nextElementSibling
+                var needEnforced = el.checked
+                var entityId = el.id.split('-')[0]
+                var attrCheckboxs = tableBodyEl.querySelectorAll(util.format('input[id^="{0}"', entityId))
+
+                Array.prototype.slice.call(attrCheckboxs).forEach(function (el) {
+
+                    var compositeId = el.id
+                    var attr = service.getAttributeByCompositeId(compositeId)
+
+                    if (attr.datatype.toLowerCase() === 'reference' && needEnforced) {
+                        return
+                    }
+                    else {
+                        var evt = util.createEvent('click')
+                        el.checked = !needEnforced
+                        el.dispatchEvent(evt)
+                    }
+                })
+
+            }
+        }
+
+        function summaryExpandHandler(e) {
+            var toggleBtn = e.target
+            var parentEl = toggleBtn.parentElement
+            var isExpand =
+                toggleBtn.getAttribute('data-expand') === 'true' ? true : false
+
+            if (parentEl && parentEl.nextElementSibling) {
+                toggleBtn.setAttribute('data-expand', (!isExpand).toString())
+                toggleBtn.textContent = isExpand ? '+' : '-'
+                parentEl.nextElementSibling.classList.toggle('hide')
+            }
+        }
+
+        function fieldSelectorConfirmHandler(e) {
+
+            var selectedAttrNames = getCheckedAttributeNames(treeviewSelector.wrap)
+            var entityId = treeviewSelector.wrap.getAttribute('data-id').split(':')[1]
+            var entityAttrId = treeviewSelector.wrap.getAttribute('data-ref-attr').slice(TABLE_REF_PREFIX.length + 1)
+            var entityCheckboxEl = elementMaps.entityCheckboxes[entityId]
+            var attrCheckboxEl = $(util.format('input[id="{0}"]', entityAttrId))
+            if (attrCheckboxEl) {
+
+                var tdEl = attrCheckboxEl.parentElement
+                var unfoldEl = $('.unfolder-wrap', tdEl)
+
+                selectedAttrNames.length && (attrCheckboxEl.checked = true)
+
+                if (selectedAttrNames.length) {
+                    unfoldEl.classList.remove('hide')
+                } else {
+                    unfoldEl.classList.add('hide')
+                }
+            }
+            else {
+                console.log(util.format('fieldSelectorConfirmHandler -> get attribute checkbox failed, compositeId: {0}', entityAttrId))
+            }
+
+            //unenforce previous reference attributes
+            var prevClassifiedEnforcedRefAttrs = selectedAttrNames.reduce(function (prev, attr) {
+                prev[util.format('{0}:{1}', entityId, attr.name).split('.')[0]] = 1
+                return prev
+            }, {})
+            var prevEnforcedRefAttrCompositeIds = Object.keys(prevClassifiedEnforcedRefAttrs)
+            prevEnforcedRefAttrCompositeIds.forEach(function (compositeId) {
+                service.setBatchRefAttributeEnforcementById(compositeId, false)
+            })
+            //store new enforced referenced attributes
+            selectedAttrNames.forEach(function (attr) {
+                refAttributeHydrator(attr, entityId)
+                refAttrEnforcerHydrator(util.format('{0}:{1}', entityId, attr.name), true)
+            })
+            var refAttrs = selectedAttrNames.map(function (attr) {
+                return service.getEnforcedRefAttributeByCompositeId(util.format('{0}:{1}', entityId, attr.name))
+            }).filter(function (attr) { return !!attr })
+            var refAttrTableCellMap = refAttrs.reduce(function (prev, attr) {
+
+                //used to get data cells instead of storing.
+                //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                var compositeId = util.format('{0}:{1}', attr.table, attr.name.split('.')[0])
+                var refAttrTableCell = getRefAttributeTableCell(compositeId)
+                if (refAttrTableCell) {
+                    refAttrTableCell.textContent = ''
+                    prev[compositeId] = prev[compositeId] || refAttrTableCell
+                }
+                else {
+                    console.log(util.format('fieldSelectorConfirmHandler -> get ref attributes tabel cells failed, compositeId: {0}', compositeId))
+                }
+
+                return prev
+            }, {})
+            refAttrs.forEach(function (attr) {
+
+                //used to get data cells instead of storing.
+                //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                var compositeId = util.format('{0}:{1}', attr.table, attr.name.split('.')[0])
+                var refAttrTableCell = refAttrTableCellMap[compositeId]
+                if (refAttrTableCell) {
+                    refAttrTableCell.appendChild(renderRefAttributes(attr))
+                }
+                else {
+                    console.log(util.format('fieldSelectorConfirmHandler -> empty tabel cells, compositeId: {0}', compositeId))
+                }
+            })
+            if (entityCheckboxEl) {
+                var evt = util.createEvent('click')
+                entityCheckboxEl.checked = false
+                entityCheckboxEl.dispatchEvent(evt)
+            }
+            else {
+                console.log(util.format('fieldSelectorConfirmHandler -> trigger entity checked failed, checkbox of {0} not found', entityId))
+            }
+
+            treeviewSelector.hide()
+            treeviewSelector.clear()
+            console.log(selectedAttrNames)
+        }
+
+        function fieldSelectorModifyConfirmHandler(e) {
+
+            var selectedAttrNames = getChangedAttributeNames(treeviewSelector.wrap)
+            var entityId = treeviewSelector.wrap.getAttribute('data-id').split(':')[1]
+            var entityAttrId = treeviewSelector.wrap.getAttribute('data-ref-attr').slice(TABLE_REF_PREFIX.length + 1)
+            var entityCheckboxEl = elementMaps.entityCheckboxes[entityId]
+            var attrCheckboxEl = $(util.format('input[id="{0}"]', entityAttrId))
+            var prevSelectedRefAttrs = service.getEnforcedRefAttributesByCompositeId(entityAttrId).reduce(function (prev, val) {
+                prev[val.name] = {
+                    id: val.id,
+                    name: val.name,
+                    displayName: val.displayName,
+                    active: true,
+                    is_reference: true,
+                    type: val.datatype
+                }
+                return prev
+            }, {})
+            var curSelectedRefAttrs = selectedAttrNames.reduce(function (prev, val) { prev[val.name] = val; return prev }, {})
+            var totalSelectedRefAttrs = _extend({}, prevSelectedRefAttrs, curSelectedRefAttrs)
+
+            if (attrCheckboxEl) {
+
+                var tdEl = attrCheckboxEl.parentElement
+                var unfoldEl = $('.unfolder-wrap', tdEl)
+
+                attrCheckboxEl.checked = true
+
+                if (Object.keys(totalSelectedRefAttrs).filter(function (k) { return totalSelectedRefAttrs[k].active }).length) {
+                    unfoldEl.classList.remove('hide')
+                    attrCheckboxEl.checked = true
+                } else {
+                    unfoldEl.classList.add('hide')
+                    attrCheckboxEl.checked = false
+                }
+            }
+            else {
+                console.log(util.format('fieldSelectorConfirmHandler -> get attribute checkbox failed, compositeId: {0}', entityAttrId))
+            }
+
+            //update referenced attributes
+            selectedAttrNames.forEach(function (attr) {
+                refAttributeHydrator(attr, entityId)
+                refAttrEnforcerHydrator(util.format('{0}:{1}', entityId, attr.name), !!attr.active)
+            })
+            var enforcedRefAttrs = Object.keys(totalSelectedRefAttrs).map(function (refAttrId) {
+                return service.getEnforcedRefAttributeByCompositeId(util.format('{0}:{1}', entityId, refAttrId))
+            }).filter(function (attr) { return !!attr })
+
+            var refAttrs = service.getAllRefAttributesByCompositeId(entityAttrId)
+            var refAttrTableCellMap = refAttrs.reduce(function (prev, attr) {
+
+                //used to get data cells instead of storing.
+                //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                var compositeId = util.format('{0}:{1}', attr.table, attr.name.split('.')[0])
+                var refAttrTableCell = getRefAttributeTableCell(compositeId)
+
+                if (refAttrTableCell) {
+                    refAttrTableCell.textContent = ''
+                    prev[compositeId] = prev[compositeId] || refAttrTableCell
+                }
+                else {
+                    console.log(util.format('fieldSelectorConfirmHandler -> get ref attributes tabel cells failed, compositeId: {0}', compositeId))
+                }
+
+                return prev
+
+            }, {})
+
+            enforcedRefAttrs.forEach(function (attr) {
+
+                //used to get data cells instead of storing.
+                //eg: "alm_asset:assigned_to" (not "alm_asset:assigned_to.xxx.xxx").
+                var compositeId = util.format('{0}:{1}', attr.table, attr.name.split('.')[0])
+                var refAttrTableCell = refAttrTableCellMap[compositeId]
+
+                if (refAttrTableCell) {
+                    refAttrTableCell.appendChild(renderRefAttributes(attr))
+                }
+                else {
+                    console.log(util.format('fieldSelectorConfirmHandler -> empty tabel cells, compositeId: {0}', compositeId))
+                }
+            })
+            if (entityCheckboxEl) {
+                var evt = util.createEvent('click')
+                entityCheckboxEl.checked = false
+                entityCheckboxEl.dispatchEvent(evt)
+            }
+            else {
+                console.log(util.format('fieldSelectorConfirmHandler -> trigger entity checked failed, checkbox of {0} not found', entityId))
+            }
+
+            treeviewSelector.hide()
+            treeviewSelector.clear()
+
+            console.log(selectedAttrNames)
+        }
+
+        function toggleTreeNodeHandler(e) {
+
+            var btn = e.target
+            var wrap = btn && btn.parentElement
+            var childTreeNodeWrap = wrap && wrap.nextElementSibling
+            var fieldNodesWrap = wrap && wrap.nextElementSibling
+            if (btn && wrap && fieldNodesWrap && childTreeNodeWrap) {
+
+                var refAttrName = wrap.getAttribute('data-ref-attr')
+                var refPath = wrap.getAttribute('data-path')
+                var isExpand = btn.getAttribute('data-expand') === 'true' ? true : false
+                var curEntityId = btn.getAttribute('data-table')
+                btn.setAttribute('data-expand', (!isExpand).toString())
+                if (isExpand) {
+                    fieldNodesWrap.classList.add('hide')
+                    btn.textContent = '+'
+                }
+                else {
+                    fieldNodesWrap.classList.remove('hide')
+                    btn.textContent = '-'
+                    var attrFetchStatus = service.getEntityAttrFetchStatus(curEntityId)
+                    if (!attrFetchStatus.isFetched) {
+                        fetchAttribute(curEntityId)
+                            .then(function () {
+                                innerRenderAttributeNodes(curEntityId, refAttrName, childTreeNodeWrap, refPath)
+                            })
+                            .catch(UIErrorHandler)
+                    }
+                    else {
+                        innerRenderAttributeNodes(curEntityId, refAttrName, childTreeNodeWrap, refPath)
+                    }
+                }
+            }
+            else {
+                console.log(util.format('entity {0} fields selector toggle handler failed', entity.id))
+            }
+        }
+
+        function unfoldHandler(e) {
+            var target = e.target
+            var compositeId = target.getAttribute('data-id') || ''
+            var entityId = compositeId.split(':')[0]
+
+            treeviewSelector.wrap.setAttribute('data-id', util.format('{0}:{1}', TABLE_REF_PREFIX, entityId))
+            treeviewSelector.wrap.setAttribute('data-ref-attr', util.format('{0}:{1}', TABLE_REF_PREFIX, compositeId))
+            if (compositeId) {
+
+                var attr = service.getAttributeByCompositeId(compositeId)
+
+                if (attr && attr.name) {
+                    elements.fieldConfirmBtn.onclick = fieldSelectorModifyConfirmHandler
+                    referenceAttrCheckHandler(attr)
+                } else {
+                    console.log('unfoldHandler failed, invalid attribute')
+                }
+
+            } else {
+                console.log('unfoldHandler failed, no compositeId found')
+            }
+        }
+        //#endregion
+
+        //#region - inner tools
+
+        /**
+         * @param {SE.ViewModel.Attribute} attr 
+         * @return {boolean}
+         */
+        function isRefAttribute(attr) {
+            return attr.datatype.toLowerCase() === 'reference'
+        }
+
+        /**
+         * 
+         * @param {string} compositeId 
+         * @return {HTMLElement}
+         */
+        function getRefAttributeTableCell(compositeId) {
+
+            var inputEl = $(util.format('input[id="{0}"]', compositeId))
+            var tableRowEl = inputEl ? inputEl.parentElement.parentElement : null
+            return tableRowEl ? tableRowEl.lastElementChild : null
+        }
+
+        /**
+         * @param {HTMLElement} root
+         * @return {SE.APIModel.NxlEnforcedAttribute[]} 
+         */
+        function getCheckedAttributeNames(root) {
+
+            var attrNames = []
+            var pathName = ''
+            var pathDisplayName = ''
+            var dfs = function (namePath, displayNamePath, node) {
+
+                if (node) {
+                    if (isLeafNode(node)) {
+                        if (isLeafChecked(node)) {
+                            var leafNames = getAttributeNamesFromLeaf(node)
+                            var rawCompositeId = node.title || ''
+                            var compositeId = rawCompositeId.replace('.', ':')
+                            var attr = service.getAttributeByCompositeId(compositeId)
+                            //remove first empty dot
+                            if (namePath.indexOf('.') === 0) {
+                                namePath = namePath.slice(1)
+                            }
+
+                            if (displayNamePath.indexOf('.') === 0) {
+                                displayNamePath = displayNamePath.slice(1)
+                            }
+
+                            attrNames.push({
+                                id: util.format('{0}.{1}', namePath, leafNames.name),
+                                name: util.format('{0}.{1}', namePath, leafNames.name),
+                                displayName: util.format('{0}."{1}"', displayNamePath, leafNames.displayName),
+                                isRef: true,
+                                datatype: attr.datatype
+                            })
+                        }
+                    }
+                    else {
+
+                        var refAttrNames = getAttributeNamesFromBranch(node)
+                        namePath = util.format('{0}.{1}', namePath, refAttrNames.name)
+                        //namePath = namePath.length === refAttrNames.name.length + 1 ? namePath.slice(1) : namePath
+                        displayNamePath = util.format('{0}."{1}"', displayNamePath, refAttrNames.displayName)
+                        //displayNamePath = displayNamePath.length === refAttrNames.displayName.length + 1 ? displayNamePath.slice(1) : displayNamePath
+                        var contentNode = node.firstElementChild
+                        var childNodesWrap = contentNode.nextElementSibling
+                        var curNode = childNodesWrap.firstElementChild
+                        while (curNode) {
+                            dfs(namePath, displayNamePath, curNode)
+                            curNode = curNode.nextElementSibling
+                        }
+                    }
+                }
+            }
+
+            var curChildNode = root.firstElementChild
+            while (curChildNode) {
+
+                dfs(pathName, pathDisplayName, curChildNode)
+                curChildNode = curChildNode.nextElementSibling
+            }
+
+            return attrNames
+        }
+
+        /**
+         * @param {HTMLElement} root
+         * @return {SE.APIModel.NxlEnforcedAttribute[]} 
+         */
+        function getChangedAttributeNames(root) {
+
+            var attrNames = []
+            var pathName = ''
+            var pathDisplayName = ''
+            var dfs = function (namePath, displayNamePath, node) {
+
+                if (node) {
+                    if (isLeafNode(node)) {
+
+                        var leafNames = getAttributeNamesFromLeaf(node)
+                        var rawCompositeId = node.title || ''
+                        var compositeId = rawCompositeId.replace('.', ':')
+                        var attr = service.getAttributeByCompositeId(compositeId)
+                        if (isLeafChecked(node)) {
+
+                            //remove first empty dot
+                            if (namePath.indexOf('.') === 0) {
+                                namePath = namePath.slice(1)
+                            }
+
+                            if (displayNamePath.indexOf('.') === 0) {
+                                displayNamePath = displayNamePath.slice(1)
+                            }
+
+                            attrNames.push({
+                                id: util.format('{0}.{1}', namePath, leafNames.name),
+                                name: util.format('{0}.{1}', namePath, leafNames.name),
+                                displayName: util.format('{0}."{1}"', displayNamePath, leafNames.displayName),
+                                isRef: true,
+                                datatype: attr.datatype,
+                                active: true,
+                            })
+                        } else if (isLeafCheckedPrev(namePath, leafNames.name)) {
+
+                            //remove first empty dot
+                            if (namePath.indexOf('.') === 0) {
+                                namePath = namePath.slice(1)
+                            }
+
+                            if (displayNamePath.indexOf('.') === 0) {
+                                displayNamePath = displayNamePath.slice(1)
+                            }
+
+                            attrNames.push({
+                                id: util.format('{0}.{1}', namePath, leafNames.name),
+                                name: util.format('{0}.{1}', namePath, leafNames.name),
+                                displayName: util.format('{0}."{1}"', displayNamePath, leafNames.displayName),
+                                isRef: true,
+                                datatype: attr.datatype,
+                                active: false,
+                            })
+                        }
+                    }
+                    else {
+
+                        var refAttrNames = getAttributeNamesFromBranch(node)
+                        namePath = util.format('{0}.{1}', namePath, refAttrNames.name)
+                        //namePath = namePath.length === refAttrNames.name.length + 1 ? namePath.slice(1) : namePath
+                        displayNamePath = util.format('{0}."{1}"', displayNamePath, refAttrNames.displayName)
+                        //displayNamePath = displayNamePath.length === refAttrNames.displayName.length + 1 ? displayNamePath.slice(1) : displayNamePath
+                        var contentNode = node.firstElementChild
+                        var childNodesWrap = contentNode.nextElementSibling
+                        var curNode = childNodesWrap.firstElementChild
+                        while (curNode) {
+                            dfs(namePath, displayNamePath, curNode)
+                            curNode = curNode.nextElementSibling
+                        }
+                    }
+                }
+            }
+
+            var curChildNode = root.firstElementChild
+            while (curChildNode) {
+
+                dfs(pathName, pathDisplayName, curChildNode)
+                curChildNode = curChildNode.nextElementSibling
+            }
+
+            return attrNames
+        }
+
+        /**
+         * @param {HTMLElement} element 
+         * @return {boolean}
+         */
+        function isLeafCheckedPrev(namePath, curLeafName) {
+
+            if (namePath.indexOf('.') === 0) {
+                namePath = namePath.slice(1)
+            }
+
+            namePath = util.format('{0}.{1}', namePath, curLeafName)
+
+            var entityId = treeviewSelector.wrap.getAttribute('data-id').split(':')[1]
+            var compositeId = util.format('{0}:{1}', entityId, namePath)
+            var refAttr = service.getEnforcedRefAttributeByCompositeId(compositeId)
+
+            return (refAttr && refAttr.willEnforced)
+        }
+
+        /**
+         * @param {HTMLElement} element 
+         * @return {{ name: string, displayName: string }}
+         */
+        function getAttributeNamesFromBranch(element) {
+
+            var attrName = ''
+            var attrDisplayName = ''
+            var contentSelector = 'div[class=tree-node-content]:first-child'
+            var contentNode = $(contentSelector, element)
+            if (contentNode) {
+                attrName = contentNode.getAttribute('data-ref-attr')
+                attrDisplayName = contentNode.getAttribute('data-ref-attr-displayname')
+            }
+            else {
+                console.log('getAttributeNameFromBranch failed, no table content node found.')
+            }
+
+            return {
+                name: attrName,
+                displayName: attrDisplayName
+            }
+        }
+
+        /**
+         * @param {HTMLElement} element 
+         * @return {{ name: string, displayName: string }}
+         */
+        function getAttributeNamesFromLeaf(element) {
+
+            var attrName = ''
+            var attrDisplayName = ''
+            var checkboxSelector = 'input[type=checkbox]'
+            var checkboxEl = $(checkboxSelector, element)
+            attrName = checkboxEl.id.split(':')[2]
+            attrDisplayName = checkboxEl.getAttribute('data-ref-attr-displayname')
+            return {
+                name: attrName,
+                displayName: attrDisplayName
+            }
+        }
+
+        /**
+         * @param {HTMLElement} element 
+         * @return {boolean}
+         */
+        function isLeafNode(element) {
+
+            var isLeaf = true
+            if (element) {
+
+                if (!element.classList.contains('tree-node-content') || !element.title) {
+                    isLeaf = false
+                }
+
+            }
+            else {
+                isLeaf = false
+            }
+
+            return isLeaf
+        }
+
+        /**
+         * @param {HTMLElement} element 
+         * @return {boolean}
+         */
+        function isLeafChecked(element) {
+
+            var isChecked = false
+            var checkboxSelector = 'input[type=checkbox]'
+            var checkboxEl = $(checkboxSelector, element)
+            isChecked = checkboxEl.checked
+            return isChecked
+        }
+
+        function setEntityCount() {
+            if (elements.entityCounter) {
+                elements.entityCounter.textContent = service.getWillEnforcedEntities().length
+            } else {
+                console.log('setEntityCount failed, element not found.')
+            }
+        }
+
+        function addEntityToList(el) {
+            if (!el) {
+                console.log('addEntityToList failed, invalid dom element.')
+                return
+            }
+
+            if (elements.entityList) {
+                var sepEl = createDOM('<hr class="sep-entity-h"/>')
+                elements.entityList.appendChild(el)
+                elements.entityList.appendChild(sepEl)
+            } else {
+                console.log('addEntityToList failed, entity list element not found.')
+            }
+        }
+
+        function addEntityToSummary(entityId) {
+
+            var entity = service.getEntityById(entityId)
+            var primitiveAttrs = service.getAttributesByEntityId(entityId)
+            var refAttrs = service.getEnforcedRefAttributesByEntityId(entityId)
+            var el = renderSummaryEntityCard(entity, primitiveAttrs)
+            var attrsWrap = $('ul[class*="summary-attrs-wrap"]', el)
+            var attrsCounter = $(util.format('em[id="{0}-attr-counter"]', entityId), el)
+
+            var sepEl = createDOM('<hr class="sep-summary-h"/>')
+            var referenceNode = findAdjacentInsertNode(entityId)
+
+            if (attrsWrap) {
+                refAttrs.forEach(function (attr) {
+                    attrsWrap.appendChild(renderRefSummaryAttr(attr))
+                })
+            }
+            else {
+                console.log('addEntityToSummary -> append reference attributes failed, attribute wrap not found')
+            }
+
+            if (attrsCounter) {
+                attrsCounter.textContent = Number(attrsCounter.textContent.trim()) + refAttrs.length
+            }
+            else {
+                console.log('addEntityToSummary -> set attributes counter failed, counter not found')
+            }
+
+            if (referenceNode) {
+                var nodeInsert = referenceNode.insertAdjacentElement(insertAdjacentElementPositions.beforeCurrentElement, el)
+
+                if (nodeInsert) {
+                    elementMaps.summary[entityId] = nodeInsert
+                    nodeInsert.insertAdjacentElement(insertAdjacentElementPositions.afterCurrentElement, sepEl)
+                }
+                else {
+                    console.log(util.format('addEntityToSummary failed, entity: {0}', entityId))
+                }
+            }
+            else {
+                elementMaps.summary[entityId] = el
+                elements.summaryEntityListEl.appendChild(el)
+                elements.summaryEntityListEl.appendChild(sepEl)
+            }
+        }
+
+        function removeEntityFromSummary(entityId) {
+            var el = elementMaps.summary[entityId]
+
+            if (el && el.nodeType === 1) {
+                var sep = el.nextElementSibling
+
+                if (sep && sep.nodeName === 'HR') {
+                    elements.summaryEntityListEl.removeChild(sep)
+                    elements.summaryEntityListEl.removeChild(el)
+                    elementMaps.summary[entityId] = null
+                } else {
+                    console.log('removeEntityFromSummary failed, sep element not found.')
+                }
+            }
+        }
+
+        /**
+         * find adjacent node to insert by ascend entity display name.
+         * @param {string} id - the id of entity to be added to summary
+         * @return {Element}
+         */
+        function findAdjacentInsertNode(id) {
+            var matchNode = null
+            var entity = service.getEntityById(id)
+            var displayName = entity && entity.displayName
+
+            if (displayName) {
+                var curNode = elements.summaryEntityListEl.firstElementChild
+
+                while (curNode) {
+                    var targetId = curNode.getAttribute('data-id')
+                    var targetEntity = targetId && service.getEntityById(targetId)
+                    var targetDisplayName = targetEntity && targetEntity.displayName
+
+                    if (targetDisplayName) {
+                        if (targetDisplayName.toLowerCase() > displayName.toLowerCase()) {
+                            matchNode = curNode
+                            break
+                        }
+                    }
+                    curNode = curNode.nextElementSibling
+                }
+            } else {
+                console.log(util.format('findAdjacentInsertNode of {0} failed.', id))
+            }
+
+            return matchNode
+        }
+
+        /**
+         * add prefix 'SF_' to entity id & name & displayName
+         * @param {SE.ViewModel.Entity} entity 
+         * @returns {SE.ViewModel.Entity}
+         */
+        function addSFPrefixToEntity(entity) {
+
+            if (entity) {
+
+                return _extend({}, entity, {
+                    id: util.format('{0}_{1}', 'SF', entity.id),
+                    name: util.format('{0}_{1}', 'SF', entity.name),
+                    displayName: util.format('{0}_{1}', 'SF', entity.displayName),
+                })
+
+            } else {
+                console.log('addSFPrefixToEntity failed, entity is null')
+            }
+        }
+
+        /**
+         * add prefix 'SF_' to attribute id & name & displayName
+         * @param {SE.ViewModel.Attribute} attr 
+         * @return {SE.ViewModel.Attribute}
+         */
+        function addSFPrefixToAttribute(attr) {
+            if (attr) {
+
+                return _extend({}, attr, {
+                    id: util.format('{0}_{1}', 'SF', attr.id),
+                    name: util.format('{0}_{1}', 'SF', attr.name),
+                    displayName: util.format('{0}_{1}', 'SF', attr.displayName),
+                })
+
+            } else {
+                console.log('addSFPrefixToAttribute failed, attribute is null')
+            }
+        }
+
+        function shouldFiltered(entity, keywords, secureLevel) {
+
+            var needFilter = true
+
+            if (!entity) {
+                return needFilter
+            }
+
+            var isMatch = (entity.displayName.toLowerCase().indexOf(keywords) >= 0)
+
+            if (secureLevel === ALL_ENTITIES) {
+                needFilter = !isMatch
+            } else {
+
+                var needSecure = (secureLevel === SECURE_ENTITIES)
+                var isSecured = !!entity.willEnforced
+
+                needFilter = !((needSecure === isSecured) && isMatch)
+            }
+
+            return needFilter
+        }
+        //#endregion
+
+        //#region - ui rendering
+
+        /**
+         * render entity list
+         * @param {NXL_Entity[]} entities
+         */
+        function renderEntityList(entities) {
+            if (!Array.isArray(entities)) {
+                return
+            }
+
+            elementMaps.entityCheckboxes = {}
+            elements.selectAllCheckbox.checked = false
+            clearEntityList()
+
+            innerRenderEntityList(entities)
+        }
+
+        function clearEntityList() {
+            if (elements.entityList) {
+                elements.entityList.textContent = ''
+            } else {
+                console.log('clearEntityList failed.')
+            }
+        }
+
+        /**
+         * render entity list according to the pager.current
+         * - return the length of entities rendered.
+         * @param {SE.ViewModel.Entity[]} entities
+         * @return {Number}
+         */
+        function innerRenderEntityList(entities) {
+            entities.forEach(function (entity) {
+                var entityCard = renderEntityCard(entity)
+                var entityCheckbox = $(util.format('input[id="{0}"]', entity.id), entityCard)
+
+                elementMaps.entityCheckboxes[entity.id] = entityCheckbox
+                addEntityToList(entityCard)
+            })
+
+            return entities.length
+        }
+
+        /**
+         * @param {SE.ViewModel.Entity} entity
+         * @return {HTMLElement}
+         */
+        function renderEntityCard(entity) {
+            var wrap = createDOM(util.format('<li class="entity-card" data-id="{0}"></li>', entity.id))
+            var checkboxWrap = createDOM('<div class="box checkbox-wrap"></div>')
+            var detailWrap = createDOM('<div class="box entity-item-wrap"></div>')
+            var titleWrap = createDOM('<div class="entity-title-wrap"></div>')
+            var entityTitleEl = createDOM(
+                util.format(
+                    '<label class="form-control-inline font-bold font-lg">{0}</label>',
+                    entity.displayName
+                )
+            )
+            var entityTitleAreaEl = createDOM(
+                util.format(
+                    '<label class="form-control-inline font-bold font-md">{0}</label>',
+                    ''
+                )
+            )
+
+            titleWrap.appendChild(entityTitleEl)
+            titleWrap.appendChild(entityTitleAreaEl)
+
+            var checkboxInput = createDOM(
+                util.format(
+                    '<input id="{0}" type="checkbox" class="checkbox hide" />',
+                    entity.id
+                )
+            )
+            var checkboxLabel = createDOM(
+                util.format(
+                    '<label for="{0}" class="box checkbox-presenter"></label>',
+                    entity.id
+                )
+            )
+
+            checkboxWrap.appendChild(checkboxInput)
+            checkboxWrap.appendChild(checkboxLabel)
+
+            var entityDesc = createDOM(
+                util.format('<p class="entity-desc font-md">{0}</p>', entity.description)
+            )
+            var toggleBtn = createDOM(
+                util.format(
+                    '<p class="show-fields-wrap" data-expand="false" data-id="{0}"><a class="link font-md">Show Fields</a><em class="link font-md"></em></p>',
+                    entity.id
+                )
+            )
+            var tableWrap = createDOM('<div class="entity-table-wrap hide"></div>')
+            var tableDesc = createDOM(
+                '<p class="attrs-desc font-md font-blue">Fields available for policy authoring and evaluation</p>'
+            )
+
+            tableWrap.appendChild(tableDesc)
+
+            detailWrap.appendChild(titleWrap)
+            detailWrap.appendChild(entityDesc)
+            detailWrap.appendChild(toggleBtn)
+            detailWrap.appendChild(tableWrap)
+
+            wrap.appendChild(checkboxWrap)
+            wrap.appendChild(detailWrap)
+
+            toggleBtn.onclick = toggleAttrsHandler.bind(this)
+            checkboxInput.onclick = entityCheckHandler.bind(this)
+
+            checkboxInput.checked = entity.willEnforced
+
+            return wrap
+        }
+
+        function renderAttrTableHead(id) {
+            var headWrap = createDOM('<thead></thead>')
+            var rowEl = createDOM('<tr></tr>')
+            var checkboxCellEl = createDOM(
+                util.format(
+                    '<th class="td-sm td-pad"><input id="{0}-all" type="checkbox" class="checkbox hide" /><label for="{1}-all" class="box"></label></th>',
+                    id,
+                    id
+                )
+            )
+            var displayNameCellEl = createDOM(
+                '<th class="td-lg"><span class="font-bold font-md">Display Name</span></th>'
+            )
+            var nameCellEl = createDOM(
+                '<th class="td-lg"><span class="font-bold font-md">Name</span></th>'
+            )
+            var datatypeCellEl = createDOM(
+                '<th class="td-lg"><span class="font-bold font-md">Data Type</span></th>'
+            )
+            var tableCellEl = createDOM(
+                '<th class="td-lg"><span class="font-bold font-md">Table</span></th>'
+            )
+            var referenceCellEl = createDOM(
+                '<th class="td-lg"><span class="font-bold font-md">Reference Attributes</span></th>'
+            )
+
+            checkboxCellEl.onclick = selectAllAttrHandler.bind(this)
+
+            rowEl.appendChild(checkboxCellEl)
+            rowEl.appendChild(displayNameCellEl)
+            rowEl.appendChild(nameCellEl)
+            rowEl.appendChild(datatypeCellEl)
+            rowEl.appendChild(tableCellEl)
+            rowEl.appendChild(referenceCellEl)
+            headWrap.appendChild(rowEl)
+
+            return headWrap
+        }
+
+        /**
+         * @param {SE.ViewModel.Attribute} attr
+         * @return {HTMLElement}
+         */
+        function renderAttrTableRow(attr) {
+
+            var refAttrs = []
+            var refAttrHTMLFrag = ''
+            if (attr && isRefAttribute(attr)) {
+                var compositeId = util.format('{0}:{1}', attr.table, attr.name)
+                refAttrs = service.getEnforcedRefAttributesByCompositeId(compositeId)
+                refAttrHTMLFrag = refAttrs.map(function (attr) {
+                    return renderRefAttributes(attr).outerHTML
+                }).join('')
+            }
+
+            var el = createDOM(
+                '<tr>' +
+                '<td class="td-sm">' +
+                util.format(
+                    '<input id="{0}" type="checkbox" class="checkbox hide" />',
+                    util.format('{0}:{1}', attr.table, attr.id)
+                ) +
+                util.format(
+                    '<label for="{0}" class="box"></label>',
+                    util.format('{0}:{1}', attr.table, attr.id)
+                ) +
+                util.format(
+                    '<div class="unfolder-wrap unfolder-wrap-attr {0}" data-id="{1}"><i class="unfolder"></i></div>',
+                    refAttrs.length ? '' : 'hide',
+                    util.format('{0}:{1}', attr.table, attr.id)
+                ) +
+                '</td>' +
+                util.format(
+                    '<td class="td-lg bg-gray-light"><span class="entity-display-name font-default font-md">{0}</span></td>',
+                    attr.displayName
+                ) +
+                util.format(
+                    '<td class="td-lg"><span class="font-default font-md">{0}</span></td>',
+                    attr.name
+                ) +
+                util.format(
+                    '<td class="td-lg bg-gray-light"><span class="font-default font-md">{0}</span></td>',
+                    attr.datatype
+                ) +
+                util.format(
+                    '<td class="td-lg"><span class="font-default font-md">{0}</span></td>',
+                    attr.table
+                ) +
+                util.format(
+                    '<td class="td-lg" data-ref-attr="{0}">{1}</td>',
+                    '',
+                    refAttrHTMLFrag
+                ) +
+                '</tr>'
+            )
+
+            var inputEl = $('input[type="checkbox"]', el)
+            var unfoldEl = $('.unfolder-wrap', el)
+            inputEl.onclick = attrCheckHandler
+            inputEl.checked = isRefAttribute(attr) ? !!refAttrs.length : attr.willEnforced
+            unfoldEl.onclick = unfoldHandler
+            return el
+        }
+
+        /**
+         * @param {SE.ViewModel.Attribute[]} attrs
+         * @param {string} id entity id
+         * @return {HTMLElement}
+         */
+        function renderAttrTable(attrs, id) {
+
+            var table = createDOM('<table class="entity-table"></table>')
+            var header = renderAttrTableHead(id)
+            var body = document.createElement('tbody')
+
+            attrs.forEach(function (attr) {
+                body.appendChild(renderAttrTableRow(attr))
+            })
+
+            table.appendChild(header)
+            table.appendChild(body)
+
+            return table
+        }
+
+        function clearSummaryEntityList() {
+            if (elements.summaryEntityListEl) {
+                elements.summaryEntityListEl.textContent = ''
+            } else {
+                console.log('clearSummaryEntityList failed.')
+            }
+        }
+
+        function renderSummaryEntityList() {
+            var entitiesTobeEnforced = service.getWillEnforcedEntities()
+
+            if (entitiesTobeEnforced && entitiesTobeEnforced.length) {
+                entitiesTobeEnforced.forEach(function (entity) {
+                    addEntityToSummary(entity.id)
+                })
+            }
+        }
+
+        /**
+         * @param {SE.ViewModel.Entity} entity
+         * @param {SE.ViewModel.Attribute[]} attrs
+         * @return {HTMLElement}
+         */
+        function renderSummaryEntityCard(entity, attrs) {
+            var wrap = createDOM(
+                util.format(
+                    '<li class="summary-entity-wrap" data-id="{0}"></li>',
+                    entity.id
+                )
+            )
+            var entityWrap = createDOM('<div  class="entity-name-wrap"></div>')
+            var toggleBtn = createDOM(
+                '<i class="box btn attr-toggle-icon" data-expand="false">+</i>'
+            )
+            var entityName = createDOM(
+                util.format(
+                    '<span class="summary-entity font-lg font-bold">{0} (<em id="{1}-attr-counter">0</em> fields )</span>',
+                    entity.displayName,
+                    entity.id
+                )
+            )
+            var attrCounter = $('em', entityName)
+            var removeBtn = createDOM(
+                util.format(
+                    '<a class="link font-sm summary-remove" data-id="{0}">Remove</a>',
+                    entity.id
+                )
+            )
+
+            entityWrap.appendChild(toggleBtn)
+            entityWrap.appendChild(entityName)
+            entityWrap.appendChild(removeBtn)
+
+            var attrsWrap = createDOM('<ul class="grid summary-attrs-wrap hide"></ul>')
+
+            var count = 0
+
+            if (Array.isArray(attrs)) {
+                attrs.forEach(function (attr) {
+                    if (attr.willEnforced) {
+                        count += 1
+                        attrsWrap.appendChild(renderSummaryAttr(attr))
+                    }
+                })
+            }
+
+            attrCounter.textContent = count
+
+            wrap.appendChild(entityWrap)
+            wrap.appendChild(attrsWrap)
+
+            toggleBtn.onclick = summaryExpandHandler
+            removeBtn.onclick = removeEntityHandler
+            attrsWrap.onclick = removeAttrHandler
+
+            return wrap
+        }
+
+        /**
+         * @param {SE.ViewModel.Attribute} attr
+         * @return {HTMLElement}
+         */
+        function renderSummaryAttr(attr) {
+            var wrap = createDOM(
+                util.format(
+                    '<li class="box summary-attr-wrap font-sm"><span class="font-red font-sm summary-attr">{0}</span><i class="box attr-delete-icon" data-id="{1}"></i></li>',
+                    attr.displayName,
+                    util.format('{0}:{1}', attr.table, attr.id)
+                )
+            )
+            return wrap
+        }
+
+        /**
+         * @param {SE.ViewModel.Attribute} attr
+         * @return {HTMLElement}
+         */
+        function renderRefSummaryAttr(attr) {
+            var wrap = createDOM(
+                util.format(
+                    '<li class="box summary-attr-wrap font-sm"><span class="font-red font-sm summary-attr">{0}</span><i class="box attr-delete-icon" data-id="{1}" data-is-ref-attr="true"></i></li>',
+                    attr.displayName,
+                    util.format('{0}:{1}', attr.table, attr.id)
+                )
+            )
+            return wrap
+        }
+
+        /**
+         * @param {string} entityId
+         * @param {string} refAttrName
+         * @param {string} refAttrDisplayName
+         * @return {HTMLElement}
+         */
+        function renderTableNode(entityId, refAttrName, refAttrDisplayName, refPath) {
+
+            var treeNode = createDOM('<div class="tree-node"></div>')
+            var tableNode = renderTableContentNode(entityId, refAttrName, refAttrDisplayName, refPath)
+            var fieldNodesWrap = createDOM('<div class="child-tree-node"></div>')
+            treeNode.appendChild(tableNode)
+            treeNode.appendChild(fieldNodesWrap)
+            return treeNode
+        }
+
+        /**
+         * @param {string} entityId
+         * @param {string} refAttrName
+         * @param {string} refAttrDisplayName
+         * @return {HTMLElement}
+         */
+        function renderTableContentNode(entityId, refAttrName, refAttrDisplayName, refPath) {
+
+            var dataPath = refPath ? util.format('{0}.{1}', refPath, refAttrName) : refAttrName
+            var wrap = createDOM(util.format('<div class="tree-node-content" data-ref-attr="{0}" data-ref-attr-displayname="{1}" data-path="{2}"></div>', refAttrName, refAttrDisplayName, dataPath))
+            var toggleBtn = createDOM(util.format('<i class="box btn attr-toggle-icon" data-table="{0}" data-expand="false">+</i>', entityId))
+            var tableName = createDOM(util.format('<span class="table-name font-bold">{0}</span>', refAttrDisplayName))
+
+            toggleBtn.onclick = toggleTreeNodeHandler
+            wrap.appendChild(toggleBtn)
+            wrap.appendChild(tableName)
+            return wrap
+        }
+
+        /**
+         * @param {SE.ViewModel.Attribute} attr 
+         * @param {string} entityId
+         * @return {HTMLElement}
+         */
+        function renderLeafNode(attr, entityId, refAttrName, refPath) {
+
+            if (!attr) {
+                console.log('renderLeafNode failed, invalid attribute')
+                return
+            }
+            var baseRefAttrCompositeId = treeviewSelector.wrap.getAttribute('data-ref-attr').slice(TABLE_REF_PREFIX.length + 1)
+            var enforcedRefAttributes = service.getEnforcedRefAttributesByCompositeId(baseRefAttrCompositeId)
+            var curRefPath = util.format('{0}.{1}', refPath, attr.name)
+            var isEnforcedBefore = enforcedRefAttributes.filter(function (a) { return a.name === curRefPath }).length ? true : false
+            var compositeId = util.format('{0}:{1}:{2}', TREEVIEW_ATTR_PREFIX + (++TREE_NODE_ID).toString(), refAttrName, attr.name)
+            var wrap = createDOM(util.format('<div class="tree-node-content" title="{0}"></div>', entityId + '.' + attr.name))
+            var checkboxWrap = createDOM('<div class="box checkbox-sm-wrap"></div>')
+            var checkboxInput = createDOM(util.format('<input id="{0}" type="checkbox" class="checkbox-sm hide" data-ref-attr-displayname="{1}" {2}/>', compositeId, attr.displayName, isEnforcedBefore ? 'checked' : ''))
+            var checkboxLabel = createDOM(util.format('<label for="{0}" class="box"></label>', compositeId))
+            var attrNameEl = createDOM(util.format('<span class="field-name">{0}</span>', attr.displayName))
+            wrap.appendChild(checkboxWrap)
+            wrap.appendChild(attrNameEl)
+            checkboxWrap.appendChild(checkboxInput)
+            checkboxWrap.appendChild(checkboxLabel)
+            return wrap
+        }
+
+        /**
+         * 
+         * @param {SE.Tables.Attribute} attr 
+         */
+        function renderRefAttributes(attr) {
+
+            return createDOM(util.format('<p class="font-sm" title={0}>{1}</p>', attr.name, attr.displayName))
+        }
+
+        function innerRenderAttributeNodes(entityId, refAttrName, wrap, refPath) {
+
+            if (!entityId || !wrap) {
+                console.log('innerRenderAttributeNodes failed')
+                return
+            }
+
+            var attrs = service.getAttributesByEntityId(entityId)
+            if (Array.isArray(attrs)) {
+                attrs.forEach(function (attr) {
+                    if (attr.datatype.toLowerCase() === 'reference') {
+                        wrap.appendChild(renderTableNode(attr.refTable, attr.name, attr.displayName, refPath))
+                    }
+                    else {
+                        wrap.appendChild(renderLeafNode(attr, entityId, refAttrName, refPath))
+                    }
+                })
+            }
+            else {
+                var errorMsg = util.format('innerRenderAttributeNodes -> get entity: {0} meta attributes failed', entityId)
+                console.log(errorMsg)
+            }
+        }
+
+        function updateRefAttrTableCell(compositeId) {
+
+            var td = getRefAttributeTableCell(compositeId)
+            if (td) {
+
+                td.textContent = ''
+                var refAttrs = service.getEnforcedRefAttributesByCompositeId(compositeId)
+                var refAttrCell = refAttrs.map(function (attr) {
+                    return renderRefAttributes(attr)
+                })
+                refAttrCell.forEach(function (el) {
+                    td.appendChild(el)
+                })
+            }
+            else {
+                console.log(util.format('updateRefAttrTableCell failed, compositeId: {0}', compositeId))
+            }
+        }
+        //#endregion
+
+        //#region hydrators
+
+        /**
+         * store entity model in the tables
+         * @param {SE.APIModel.NxlMetaEntity} model
+         */
+        function metaEntityHydrator(model) {
+
+            if (model) {
+
+                var entity = {
+                    id: model.id,
+                    name: model.name,
+                    displayName: model.displayName,
+                    description: model.description || '',
+                }
+
+                store.entityInfo[entity.id] = entity
+            }
+            else {
+                console.log('metaEntityHydrator failed, model invalid')
+            }
+        }
+
+        /**
+         * @deprecated
+         * @param {SE.APIModel.NxlMetaAttribute} model 
+         * @param {string} entityId
+         */
+        function metaAttributeHydrator(model, entityId) {
+
+            if (model && entityId) {
+
+                var attr = {
+                    id: model.id,
+                    name: model.name,
+                    displayName: model.displayName,
+                    description: model.description || '',
+                    datatype: model.datatype,
+                    table: entityId,
+                    isRef: model.isRef,
+                    refTable: model.refTable,
+                }
+
+                var compositeId = util.format('{0}:{1}', entityId, attr.id)
+
+                if (!store.attrInfo[compositeId]) {
+                    store.attrInfo[compositeId] = attr
+                }
+            }
+            else {
+                console.log('metaAttributeHydrator failed, model invalid')
+            }
+        }
+
+        function entityAttrFetchStatusHydrator(entityId, isFetched) {
+
+            var attrFetchStatus = {
+                id: entityId,
+                isFetched: isFetched,
+            }
+
+            store.entityAttrFetchStatus[entityId] = attrFetchStatus
+        }
+
+        function entityEnforcerHydrator(entityId, isEnforced) {
+
+            var enforcer = {
+                id: entityId,
+                enforced: isEnforced,
+                willEnforced: isEnforced
+            }
+
+            store.entityEnforcer[entityId] = enforcer
+        }
+
+        function attrEnforcerHydrator(compositeId, isEnforced) {
+
+            var attrId = compositeId.split(':')[1]
+
+            var enforcer = {
+                id: attrId,
+                enforced: isEnforced,
+                willEnforced: isEnforced
+            }
+
+            store.attrEnforcer[compositeId] = enforcer
+        }
+
+        /**
+        * @param {SE.APIModel.NxlEnforcedAttribute} model 
+        * @param {string} entityId 
+        */
+        function refAttributeHydrator(model, entityId) {
+            if (model && entityId) {
+
+                var compositeId = util.format('{0}:{1}', entityId, model.id)
+                var attr = _extend({}, model, {
+                    description: '',
+                    table: entityId,
+                })
+
+                store.refAttrInfo[compositeId] = attr
+            }
+            else {
+                console.log(util.format('refAttributeHydrator failed, model: {0}, entityId: {1}', model, entityId))
+            }
+        }
+
+        function refAttrEnforcerHydrator(compositeId, isEnforced) {
+
+            var attrId = compositeId.split(':')[1]
+            var enforcer = {
+                id: attrId,
+                enforced: isEnforced,
+                willEnforced: isEnforced
+            }
+            store.refAttrEnforcer[compositeId] = enforcer
+        }
+
+        function triggerInfoHydrator(triggerInfo) {
+
+            if (!triggerInfo || !triggerInfo.id || !triggerInfo.name) {
+                console.log(util.format('triggerInfoHydrator failed, invalid triggerInfo: {0}', triggerInfo))
+            }
+
+            store.triggerInfo[triggerInfo.name] = triggerInfo
+        }
+        //#endregion
+
+        //#region - dehydrator
+
+        /**
+        * dehydrate data from the entity & its attributes
+        * - return the data dehyrated in a specific format
+        * @param {SE.ViewModel.Entity} entity
+        * @param {SE.ViewModel.Attribute[]} attrs
+        * @return {{ id: string, name: string, displayName: string, description: string, attributes: { id: string, name: string, displayName: string, description: string, datatype: string }[] }}
+        */
+        function entityDehydrator(entity) {
+
+            var model = {
+                id: entity.id,
+                name: entity.name,
+                displayName: entity.displayName,
+                description: entity.description,
+                attributes: []
+            }
+
+            var attrs = service.getWillEnforcedAttributesByEntityId(entity.id)
+
+            model.attributes = attrs.map(function (attr) {
+                return {
+                    id: attr.id,
+                    name: attr.name,
+                    displayName: attr.displayName,
+                    datatype: attr.datatype,
+                    description: attr.description,
+                    isRef: !!attr.isRef,
+                }
+            })
+
+            return model
+        }
+        //#endregion
+        })()
+    </script>
+</apex:page>
